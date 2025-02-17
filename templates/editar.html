@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Editar Joya</title>
+  </head>
+  <body>
+    <h1>Editar el registro #{{ registro.numero }}</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+      <p>
+        <label>Número (no editable):</label>
+        <input type="text" value="{{ registro.numero }}" readonly />
+      </p>
+      <p>
+        <label>Descripción:</label>
+        <input type="text" name="descripcion" value="{{ registro.descripcion }}" required />
+      </p>
+      <p>
+        <label>Peso (gr):</label>
+        <input type="number" step="any" name="peso" value="{{ registro.peso }}" required />
+      </p>
+      <p>
+        <label>Valor:</label>
+        <input type="number" step="any" name="valor" value="{{ registro.valor }}" required />
+      </p>
+      <p>
+        <label>Nuevas Imágenes (hasta 3):</label><br />
+        <input type="file" name="imagenes" multiple accept="image/*" />
+        <br />
+        <small>(Solo se sustituyen las imágenes de las columnas donde subas un archivo)</small>
+      </p>
+      <button type="submit">Guardar</button>
+    </form>
+  </body>
+</html>

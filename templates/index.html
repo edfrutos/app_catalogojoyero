@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Catálogo Joyas (Múltiples Imágenes)</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 2rem;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        max-width: 900px;
+        margin-top: 2rem;
+      }
+      th,
+      td {
+        border: 1px solid #aaa;
+        padding: 0.5rem;
+        vertical-align: top;
+      }
+      th {
+        background-color: #eee;
+      }
+      form {
+        margin-bottom: 1.5rem;
+      }
+      img {
+        max-width: 80px;
+        margin-top: 0.3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Catálogo Joyas (Múltiples Imágenes)</h1>
+
+    <!-- Formulario para agregar nueva fila (hasta 3 imágenes) -->
+    <form method="POST" enctype="multipart/form-data">
+      <label for="numero">Número:</label>
+      <input type="text" id="numero" name="numero" required />
+
+      <label for="descripcion">Descripción:</label>
+      <input type="text" id="descripcion" name="descripcion" required />
+
+      <label for="peso">Peso (gr):</label>
+      <input type="number" step="any" id="peso" name="peso" required />
+
+      <label for="valor">Valor:</label>
+      <input type="number" step="any" id="valor" name="valor" required />
+
+      <br /><br />
+      <label>Imágenes (hasta 3):</label>
+      <input type="file" name="imagenes" multiple accept="image/*" />
+      <!-- 
+            Al usar name="imagenes" y "multiple",
+            request.files.getlist("imagenes") nos dará todas las subidas
+        -->
+
+      <button type="submit">Agregar</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Descripción</th>
+          <th>Peso</th>
+          <th>Valor</th>
+          <th>Imágenes</th>
+          <th>Editar</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in data %}
+        <tr>
+          <td>{{ item.numero }}</td>
+          <td>{{ item.descripcion }}</td>
+          <td>{{ item.peso }}</td>
+          <td>{{ item.valor }}</td>
+          <td>
+            {% for ruta in item.imagenes %} {% if ruta %}
+            <a href="{{ '/' + ruta }}" target="_blank">Ver Imagen</a><br />
+            <img src="{{ '/' + ruta }}" alt="Preview" /><br /><br />
+            {% endif %} {% endfor %}
+          </td>
+          <td>
+            <a href="/editar/{{ item.numero }}">Editar</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p>
+      <a href="/descargar-excel">Descargar Excel (datos.xlsx)</a>
+    </p>
+  </body>
+</html>

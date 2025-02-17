@@ -1,0 +1,7 @@
+app_catalogojoyero/
+├── app.py
+├── imagenes_subidas/        (Aquí se guardan los archivos de imagen)
+├── templates/
+│   ├── index.html
+│   └── editar.html
+└── datos.xlsx               (Tu Excel con datos previos)
