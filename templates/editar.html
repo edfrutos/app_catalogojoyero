@@ -11,19 +11,19 @@
 
       <form method="POST" enctype="multipart/form-data">
         <p>
-          <label>Número (no editable):</label><br />
+          <label>Número (no editable):</label>
           <input type="text" value="{{ registro.numero }}" readonly />
         </p>
         <p>
-          <label>Descripción:</label><br />
+          <label>Descripción:</label>
           <input type="text" name="descripcion" value="{{ registro.descripcion }}" required />
         </p>
         <p>
-          <label>Peso (gr):</label><br />
+          <label>Peso (gr):</label>
           <input type="number" step="any" name="peso" value="{{ registro.peso }}" required />
         </p>
         <p>
-          <label>Valor:</label><br />
+          <label>Valor:</label>
           <input type="number" step="any" name="valor" value="{{ registro.valor }}" required />
         </p>
 
@@ -49,7 +49,9 @@
           </label>
         </p>
 
+        <!-- Botones de acción -->
         <button type="submit">Guardar</button>
+        <button type="button" class="cancel-btn" onclick="window.location.href='/'">Cancelar</button>
       </form>
     </div>
   </body>

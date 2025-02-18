@@ -5,97 +5,117 @@
     <title>Catálogo Joyas (Popup de Imágenes)</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   </head>
-
   <body>
-    <h1>Catálogo Joyas (Popup de Imágenes)</h1>
+    <div class="container">
+      <h1>Catálogo Joyas (Popup de Imágenes)</h1>
 
-    <!-- Formulario para agregar nuevo registro -->
-    <form method="POST" enctype="multipart/form-data">
-      <label for="numero">Número:</label>
-      <input type="text" id="numero" name="numero" required />
+      <!-- Formulario para agregar nuevo registro -->
+      <form method="POST" enctype="multipart/form-data">
+        <label for="numero">Número:</label>
+        <input type="text" id="numero" name="numero" required />
 
-      <label for="descripcion">Descripción:</label>
-      <input type="text" id="descripcion" name="descripcion" required />
+        <label for="descripcion">Descripción:</label>
+        <input type="text" id="descripcion" name="descripcion" required />
 
-      <label for="peso">Peso (gr):</label>
-      <input type="number" step="any" id="peso" name="peso" required />
+        <label for="peso">Peso (gr):</label>
+        <input type="number" step="any" id="peso" name="peso" required />
 
-      <label for="valor">Valor:</label>
-      <input type="number" step="any" id="valor" name="valor" required />
+        <label for="valor">Valor:</label>
+        <input type="number" step="any" id="valor" name="valor" required />
 
-      <br /><br />
-      <label>Imágenes (hasta 3):</label>
-      <input type="file" name="imagenes" multiple accept="image/*" />
+        <br /><br />
+        <label>Imágenes (hasta 3):</label>
+        <input type="file" name="imagenes" multiple accept="image/*" />
 
-      <button type="submit">Agregar</button>
-    </form>
+        <button type="submit">Agregar</button>
+      </form>
 
-    <!-- Tabla que muestra los datos leídos del Excel -->
-    <table>
-      <thead>
-        <tr>
-          <th>Número</th>
-          <th>Descripción</th>
-          <th>Peso</th>
-          <th>Valor</th>
-          <th>Imágenes</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in data %}
-        <tr>
-          <td>{{ item.numero }}</td>
-          <td>{{ item.descripcion }}</td>
-          <td>{{ item.peso }}</td>
-          <td>{{ item.valor }}</td>
-          <td>
-            {% for ruta in item.imagenes %} {% if ruta %}
-            <!-- Thumbnail clickable. Al hacer clic, se llama a showModal(ruta) -->
-            <img src="{{ '/' + ruta }}" alt="Preview" class="thumbnail" onclick="showModal('{{ '/' + ruta }}')" />
-            <br /><br />
-            {% endif %} {% endfor %}
-          </td>
-          <td>
-            <a href="/editar/{{ item.numero }}">Editar</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+      <!-- Tabla con los datos de Excel -->
+      <table>
+        <thead>
+          <tr>
+            <th>Número</th>
+            <th>Descripción</th>
+            <th>Peso</th>
+            <th>Valor</th>
+            <th>Imágenes</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in data %}
+          <tr>
+            <td>{{ item.numero }}</td>
+            <td>{{ item.descripcion }}</td>
+            <td>{{ item.peso }}</td>
+            <td>{{ item.valor }}</td>
+            <td>
+              {% for ruta in item.imagenes %} {% if ruta %}
+              <img src="{{ '/' + ruta }}" alt="Preview" class="thumbnail" onclick="showModal('{{ '/' + ruta }}')" />
+              <br /><br />
+              {% endif %} {% endfor %}
+            </td>
+            <td>
+              <a href="/editar/{{ item.numero }}">Editar</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
 
-    <!-- Botón / Enlace para descargar Excel -->
-    <a class="download-excel" href="/descargar-excel">Descargar Excel (datos.xlsx)</a>
+      <!-- Botón / enlace para descargar Excel -->
+      <a class="download-link" href="/descargar-excel">Descargar Excel (datos.xlsx)</a>
+    </div>
 
-    <!-- El Modal (popup) en sí -->
+    <!-- Botón flotante "Volver arriba" (opcional) -->
+    <button type="button" class="scroll-top-btn" onclick="scrollToTop()">Volver arriba</button>
+
+    <!-- Popup (modal) con el contenedor centrado y ancho max 1200px -->
     <div id="imageModal" class="modal">
-      <span class="close" onclick="closeModal()">&times;</span>
-      <img class="modal-content" id="modalImage" />
+      <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <!-- Imagen ampliada -->
+        <img id="modalImage" src="" alt="Imagen ampliada" />
+      </div>
     </div>
 
     <script>
-      // Función que abre el modal y asigna la imagen
+      // Mostrar el modal con la imagen
       function showModal(imageSrc) {
         var modal = document.getElementById('imageModal');
         var modalImg = document.getElementById('modalImage');
-
         modal.style.display = 'block';
         modalImg.src = imageSrc;
       }
 
-      // Función que cierra el modal
+      // Cerrar el modal
       function closeModal() {
         var modal = document.getElementById('imageModal');
         modal.style.display = 'none';
       }
 
-      // Cerrar el modal si se hace clic fuera de la imagen
+      // Si se hace clic fuera del contenedor, también cerramos
       window.onclick = function (event) {
         var modal = document.getElementById('imageModal');
         if (event.target === modal) {
           closeModal();
         }
       };
+
+      // Función para hacer scroll arriba con suavidad
+      function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // Mostrar/ocultar botón "Volver arriba" según scroll
+      window.addEventListener('scroll', function () {
+        var scrollBtn = document.querySelector('.scroll-top-btn');
+        if (window.scrollY > 300) {
+          scrollBtn.style.display = 'block';
+        } else {
+          scrollBtn.style.display = 'none';
+        }
+      });
     </script>
   </body>
 </html>

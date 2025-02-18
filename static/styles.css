@@ -22,8 +22,6 @@ body {
 
 /* Título principal (h1) */
 h1 {
-    display: flex;
-    justify-content: center;
     font-size: 1.8rem;
     margin-bottom: 1rem;
     color: #007bff;
@@ -39,8 +37,6 @@ h3 {
 
 /* --- FORMULARIOS --- */
 form {
-    max-width: 80%;
-    margin: 0 auto;
     background-color: #ffffff;
     padding: 1rem;
     border: 1px solid #dee2e6;
@@ -66,7 +62,8 @@ form input[type="file"] {
     font-size: 0.9rem;
 }
 
-form button[type="submit"] {
+form button[type="submit"],
+form button.cancel-btn {
     background-color: #007bff;
     color: #fff;
     border: none;
@@ -74,9 +71,11 @@ form button[type="submit"] {
     font-size: 0.9rem;
     border-radius: 0.25rem;
     cursor: pointer;
+    margin-right: 0.5rem;
 }
 
-form button[type="submit"]:hover {
+form button[type="submit"]:hover,
+form button.cancel-btn:hover {
     background-color: #0056b3;
 }
 
@@ -87,10 +86,9 @@ input[type="checkbox"] {
 
 /* --- TABLAS --- */
 table {
-    width: 80%;
+    width: 100%;
     border-collapse: collapse;
     margin-top: 1rem;
-    margin: 0 auto;
     background-color: #ffffff;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.05);
 }
@@ -144,7 +142,6 @@ td a.btn {
     display: inline-block;
     margin-top: 1rem;
     padding: 0.5rem 1rem;
-    margin-bottom: 1rem;
     background-color: #28a745;
     color: #fff;
     text-decoration: none;
@@ -156,38 +153,73 @@ td a.btn {
     background-color: #218838;
 }
 
+/* --- BOTÓN FLOTANTE 'VOLVER ARRIBA' (opcional) --- */
+.scroll-top-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    display: none;
+    /* Se mostrará con JS al hacer scroll */
+}
+
+.scroll-top-btn:hover {
+    background-color: #0056b3;
+}
+
 /* --- POPUP MODAL --- */
 .modal {
-    /* display: none !important; */
+    display: none;
     position: fixed;
     z-index: 9999;
-    left: 15vw;
-    top: 5vw;
-    width: 80%;
-    height: 80%;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
     overflow: auto;
-    /* background-color: rgba(0, 0, 0, 0.7); */
+    background-color: rgba(0, 0, 0, 0.7);
 }
 
+/* Contenedor interno del popup */
 .modal-content {
     background-color: #fefefe;
-    max-width: 80%;
+    margin: 5% auto;
+    /* margen vertical auto para centrar */
+    max-width: 1200px;
+    /* máximo 1200px de ancho */
+    width: 90%;
+    /* ancho base, ajusta si deseas */
     padding: 1rem;
     position: relative;
-    margin-top: 3rem;
-    margin-left: 3rem;
+    border-radius: 0.25rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
+/* Botón de cerrar dentro del popup */
 .close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
     color: #aaa;
-    float: right;
     font-size: 1.5rem;
     font-weight: bold;
     cursor: pointer;
-    margin-right: 10vw;
 }
 
 .close:hover,
 .close:focus {
     color: #000;
+}
+
+/* Imagen ampliada dentro del popup */
+#modalImage {
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+    /* centrada dentro del contenedor */
 }
