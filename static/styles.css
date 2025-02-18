@@ -1,0 +1,193 @@
+/* --- RESET BÁSICO --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* --- ESTILOS GENERALES --- */
+body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.4;
+}
+
+/* Contenedor principal para centrar y limitar el ancho */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Título principal (h1) */
+h1 {
+    display: flex;
+    justify-content: center;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    color: #007bff;
+}
+
+/* Subtítulos, h2, h3... */
+h2,
+h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+/* --- FORMULARIOS --- */
+form {
+    max-width: 80%;
+    margin: 0 auto;
+    background-color: #ffffff;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Etiquetas y campos del formulario en línea */
+form label {
+    display: inline-block;
+    margin-right: 0.5rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+form input[type="text"],
+form input[type="number"],
+form input[type="file"] {
+    padding: 0.3rem;
+    margin-right: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+form button[type="submit"] {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+form button[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+/* Checkbox de borrado de imágenes o registros */
+input[type="checkbox"] {
+    margin-right: 0.3rem;
+}
+
+/* --- TABLAS --- */
+table {
+    width: 80%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    margin: 0 auto;
+    background-color: #ffffff;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.05);
+}
+
+th,
+td {
+    border: 1px solid #dee2e6;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+th {
+    background-color: #e9ecef;
+    font-weight: 600;
+}
+
+/* Miniatura para imágenes en tabla */
+.thumbnail {
+    max-width: 80px;
+    margin-top: 0.3rem;
+    cursor: pointer;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+/* Enlaces dentro de celdas */
+td a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+td a:hover {
+    text-decoration: underline;
+}
+
+/* Botones o enlaces con aspecto de botón dentro de celdas */
+td button,
+td a.btn {
+    margin-top: 0.3rem;
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    background-color: #007bff;
+    color: #fff;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    font-size: 0.8rem;
+}
+
+/* --- BOTÓN DESCARGAR EXCEL --- */
+.download-link {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    background-color: #28a745;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.download-link:hover {
+    background-color: #218838;
+}
+
+/* --- POPUP MODAL --- */
+.modal {
+    /* display: none !important; */
+    position: fixed;
+    z-index: 9999;
+    left: 15vw;
+    top: 5vw;
+    width: 80%;
+    height: 80%;
+    overflow: auto;
+    /* background-color: rgba(0, 0, 0, 0.7); */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    max-width: 80%;
+    padding: 1rem;
+    position: relative;
+    margin-top: 3rem;
+    margin-left: 3rem;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-right: 10vw;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+}

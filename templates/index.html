@@ -3,84 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <title>Catálogo Joyas (Popup de Imágenes)</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 2rem;
-      }
-      table {
-        border-collapse: collapse;
-        width: 100%;
-        max-width: 900px;
-        margin-top: 2rem;
-      }
-      th,
-      td {
-        border: 1px solid #aaa;
-        padding: 0.5rem;
-        vertical-align: top;
-      }
-      th {
-        background-color: #eee;
-      }
-      form {
-        margin-bottom: 1.5rem;
-      }
-      /* Ajuste de miniatura */
-      .thumbnail {
-        max-width: 80px;
-        cursor: pointer; /* para indicar que se puede hacer clic */
-        margin-top: 0.3rem;
-      }
-
-      /* Estilos para el modal (popup) */
-      .modal {
-        display: none; /* Oculto por defecto */
-        position: fixed; /* Posición fija sobre la pantalla */
-        z-index: 999; /* Aparece por encima de otros elementos */
-        left: 0;
-        top: 0;
-        width: 100%; /* Ocupa todo el ancho */
-        height: 100%; /* Ocupa todo el alto */
-        overflow: auto; /* Permite scroll si la imagen es grande */
-        background-color: rgba(0, 0, 0, 0.8); /* Fondo semitransparente */
-      }
-
-      /* Imagen dentro del modal */
-      .modal-content {
-        display: block;
-        margin: 5% auto;
-        max-width: 90%; /* Máximo 90% del viewport */
-      }
-
-      /* Botón de cerrar (X) */
-      .close {
-        position: absolute;
-        top: 20px;
-        right: 35px;
-        color: #fff;
-        font-size: 40px;
-        font-weight: bold;
-        cursor: pointer;
-      }
-      .close:hover,
-      .close:focus {
-        color: #bbb;
-        text-decoration: none;
-      }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   </head>
+
   <body>
     <h1>Catálogo Joyas (Popup de Imágenes)</h1>
 
-    <!-- Formulario para agregar nueva fila (sólo ejemplo) -->
+    <!-- Formulario para agregar nuevo registro -->
     <form method="POST" enctype="multipart/form-data">
       <label for="numero">Número:</label>
       <input type="text" id="numero" name="numero" required />
+
       <label for="descripcion">Descripción:</label>
       <input type="text" id="descripcion" name="descripcion" required />
+
       <label for="peso">Peso (gr):</label>
       <input type="number" step="any" id="peso" name="peso" required />
+
       <label for="valor">Valor:</label>
       <input type="number" step="any" id="valor" name="valor" required />
 
@@ -100,7 +39,7 @@
           <th>Peso</th>
           <th>Valor</th>
           <th>Imágenes</th>
-          <th>Editar</th>
+          <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -125,9 +64,8 @@
       </tbody>
     </table>
 
-    <p>
-      <a href="/descargar-excel">Descargar Excel (datos.xlsx)</a>
-    </p>
+    <!-- Botón / Enlace para descargar Excel -->
+    <a class="download-excel" href="/descargar-excel">Descargar Excel (datos.xlsx)</a>
 
     <!-- El Modal (popup) en sí -->
     <div id="imageModal" class="modal">
@@ -154,7 +92,7 @@
       // Cerrar el modal si se hace clic fuera de la imagen
       window.onclick = function (event) {
         var modal = document.getElementById('imageModal');
-        if (event.target == modal) {
+        if (event.target === modal) {
           closeModal();
         }
       };
