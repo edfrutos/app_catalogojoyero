@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, render_template, redirect, url_for, send_from_directory
 import openpyxl
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -18,18 +18,119 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# ----------------------------------
+# ----------------------------------------------------------
+# FUNCIONES AUXILIARES PARA LEER Y ESCRIBIR DATOS ORDENADOS
+# ----------------------------------------------------------
+def leer_datos_excel():
+    """
+    Lee todos los registros de 'datos.xlsx' y retorna una lista de diccionarios.
+    Cada diccionario tiene:
+      {
+        "numero":  (str),
+        "descripcion": (str),
+        "peso": (str) o float,
+        "valor": (str) o float,
+        "imagenes": [ruta_imagen1, ruta_imagen2, ruta_imagen3] (puede tener None)
+      }
+    Si el archivo no existe, retorna lista vacía.
+    """
+    if not os.path.exists(EXCEL_FILE):
+        return []
+
+    wb = load_workbook(EXCEL_FILE, read_only=False)
+    hoja = wb.active
+
+    data = []
+    # Asumimos fila 1 = cabeceras, por lo que empezamos en 2
+    for row in hoja.iter_rows(min_row=2, max_col=7):
+        numero = row[0].value  # A
+        if numero is None:
+            continue  # Fila vacía
+        numero = str(numero)   # lo tratamos siempre como string para evitar problemas
+
+        descripcion = row[1].value  # B
+        peso = row[2].value         # C
+        valor = row[3].value        # D
+
+        # E, F, G => imágenes
+        imagenes = []
+        for celda_imagen in row[4:7]:
+            if celda_imagen and celda_imagen.hyperlink:
+                imagenes.append(celda_imagen.hyperlink.target)
+            else:
+                imagenes.append(None)
+
+        data.append({
+            "numero": numero,
+            "descripcion": descripcion,
+            "peso": peso,
+            "valor": valor,
+            "imagenes": imagenes
+        })
+
+    wb.close()
+    return data
+
+def escribir_datos_excel(data):
+    """
+    Sobrescribe por completo el archivo 'datos.xlsx' con la información
+    de la lista 'data', ASUMIENDO que 'data' ya está ORDENADA por 'numero' asc.
+    """
+    # Creamos un libro nuevo
+    wb = Workbook()
+    hoja = wb.active
+    hoja.title = "Datos"
+
+    # Cabeceras
+    hoja["A1"] = "Número"
+    hoja["B1"] = "Descripción"
+    hoja["C1"] = "Peso"
+    hoja["D1"] = "Valor"
+    hoja["E1"] = "Imagen1 (Ruta)"
+    hoja["F1"] = "Imagen2 (Ruta)"
+    hoja["G1"] = "Imagen3 (Ruta)"
+
+    fila = 2
+    for item in data:
+        hoja.cell(row=fila, column=1, value=item["numero"])
+        hoja.cell(row=fila, column=2, value=item["descripcion"])
+        hoja.cell(row=fila, column=3, value=item["peso"])
+        hoja.cell(row=fila, column=4, value=item["valor"])
+
+        # E, F, G => imágenes
+        for idx, col in enumerate([5, 6, 7]):  # columnas E, F, G
+            ruta = item["imagenes"][idx]
+            if ruta:
+                celda = hoja.cell(row=fila, column=col)
+                celda.value = f"Ver Imagen {idx+1}"
+                celda.hyperlink = ruta
+                celda.style = "Hyperlink"
+        fila += 1
+
+    wb.save(EXCEL_FILE)
+    wb.close()
+
+# -------------------------------------------
 #  RUTA PRINCIPAL (listar y crear)
-# ----------------------------------
+# -------------------------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        # Crear un nuevo registro
+        # Creamos o leemos la data existente
+        data = leer_datos_excel()
+
+        # Recoger datos del formulario
         numero = request.form.get("numero")
         descripcion = request.form.get("descripcion")
         peso = request.form.get("peso")
         valor = request.form.get("valor")
 
+        # Comprobar si ya existe ese 'Numero'
+        existe = any(item["numero"] == str(numero) for item in data)
+        if existe:
+            return f"Error: El número '{numero}' ya existe en el Excel.", 400
+
+        # Procesar hasta 3 imágenes
         files = request.files.getlist("imagenes")
         rutas_imagenes = [None, None, None]
         for i, file in enumerate(files[:3]):
@@ -39,169 +140,111 @@ def index():
                 file.save(filepath)
                 rutas_imagenes[i] = os.path.join("imagenes_subidas", filename)
 
-        # Crear o abrir Excel
-        if os.path.exists(EXCEL_FILE):
-            wb = load_workbook(EXCEL_FILE)
-            hoja = wb.active
-        else:
-            wb = openpyxl.Workbook()
-            hoja = wb.active
-            hoja.title = "Datos"
-            # Cabeceras
-            hoja["A1"] = "Número"
-            hoja["B1"] = "Descripción"
-            hoja["C1"] = "Peso"
-            hoja["D1"] = "Valor"
-            hoja["E1"] = "Imagen1 (Ruta)"
-            hoja["F1"] = "Imagen2 (Ruta)"
-            hoja["G1"] = "Imagen3 (Ruta)"
+        # Insertar el nuevo registro en 'data'
+        nuevo_registro = {
+            "numero": str(numero),
+            "descripcion": descripcion,
+            "peso": peso,
+            "valor": valor,
+            "imagenes": rutas_imagenes
+        }
+        data.append(nuevo_registro)
 
-        # Insertamos en la última fila
-        nueva_fila = hoja.max_row + 1
-        hoja.cell(row=nueva_fila, column=1, value=numero)
-        hoja.cell(row=nueva_fila, column=2, value=descripcion)
-        hoja.cell(row=nueva_fila, column=3, value=peso)
-        hoja.cell(row=nueva_fila, column=4, value=valor)
+        # ORDENAR por 'numero' ascendente físicamente
+        # Asumimos que 'numero' se puede convertir en int. Haz try/except si necesario.
+        data.sort(key=lambda x: int(x["numero"]))
 
-        # Columnas E, F, G => imagen1, imagen2, imagen3
-        for idx, col in enumerate([5, 6, 7]):  # E=5, F=6, G=7
-            if rutas_imagenes[idx]:
-                celda = hoja.cell(row=nueva_fila, column=col)
-                celda.value = f"Ver Imagen {idx+1}"
-                celda.hyperlink = rutas_imagenes[idx]
-                celda.style = "Hyperlink"
+        # Reescribir Excel con la data ordenada
+        escribir_datos_excel(data)
 
-        wb.save(EXCEL_FILE)
-        wb.close()
         return redirect(url_for("index"))
 
-    # GET => Listar
-    data = []
-    if os.path.exists(EXCEL_FILE):
-        wb = load_workbook(EXCEL_FILE, read_only=False)
-        hoja = wb.active
-        for row in hoja.iter_rows(min_row=2, max_col=7):
-            numero = str(row[0].value)
-            descripcion = row[1].value
-            peso = row[2].value
-            valor = row[3].value
+    else:
+        # GET => Listar todo lo que tengamos en Excel
+        data = leer_datos_excel()
+        return render_template("index.html", data=data)
 
-            # Extraemos las 3 posibles columnas de imágenes
-            imagenes = []
-            for celda in [row[4], row[5], row[6]]:
-                if celda and celda.hyperlink:
-                    imagenes.append(celda.hyperlink.target)
-                else:
-                    imagenes.append(None)
-
-            data.append({
-                "numero": numero,
-                "descripcion": descripcion,
-                "peso": peso,
-                "valor": valor,
-                "imagenes": imagenes
-            })
-        wb.close()
-
-    return render_template("index.html", data=data)
-
-# ----------------------------------
-#  RUTA PARA EDITAR (incluye eliminar imágenes)
-# ----------------------------------
+# -------------------------------------------
+#  RUTA PARA EDITAR (y eliminar fila)
+# -------------------------------------------
 @app.route("/editar/<numero>", methods=["GET", "POST"])
 def editar(numero):
     if request.method == "GET":
-        # Mostrar el formulario con datos actuales
-        if not os.path.exists(EXCEL_FILE):
-            return "No existe el archivo Excel.", 404
-
-        wb = load_workbook(EXCEL_FILE, read_only=False)
-        hoja = wb.active
-
-        registro = None
-        for row in hoja.iter_rows(min_row=2, max_col=7):
-            valor_numero = str(row[0].value)
-            if valor_numero == str(numero):
-                registro = {
-                    "numero": valor_numero,
-                    "descripcion": row[1].value,
-                    "peso": row[2].value,
-                    "valor": row[3].value
-                }
-                break
-        wb.close()
-
+        data = leer_datos_excel()
+        # Buscar en 'data' donde item["numero"] == numero
+        registro = next((item for item in data if item["numero"] == str(numero)), None)
         if not registro:
             return f"No existe el número {numero} en el Excel.", 404
 
         return render_template("editar.html", registro=registro)
+
     else:
-        # POST => Guardar cambios
-        nueva_descripcion = request.form.get("descripcion")
-        nuevo_peso = request.form.get("peso")
-        nuevo_valor = request.form.get("valor")
+        # POST => Guardar cambios o eliminar fila
+        delete_flag = request.form.get("delete_record")
+        data = leer_datos_excel()
 
-        # Subir hasta 3 imágenes nuevas
-        files = request.files.getlist("imagenes")
-        rutas_imagenes = [None, None, None]
-        for i, file in enumerate(files[:3]):
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-                file.save(filepath)
-                rutas_imagenes[i] = os.path.join("imagenes_subidas", filename)
-
-        # Checkboxes de eliminar
-        # Nombre en editar.html: remove_img1, remove_img2, remove_img3
-        remove_flags = [
-            request.form.get("remove_img1"),
-            request.form.get("remove_img2"),
-            request.form.get("remove_img3")
-        ]
-
-        if not os.path.exists(EXCEL_FILE):
-            return "No existe el archivo Excel.", 404
-
-        wb = load_workbook(EXCEL_FILE)
-        hoja = wb.active
-
-        fila_encontrada = None
-        for row in hoja.iter_rows(min_row=2, max_col=7):
-            valor_numero = str(row[0].value)
-            if valor_numero == str(numero):
-                fila_encontrada = row
+        # Buscar el item en 'data'
+        idx_encontrado = None
+        for i, item in enumerate(data):
+            if item["numero"] == str(numero):
+                idx_encontrado = i
                 break
 
-        if not fila_encontrada:
-            wb.close()
+        if idx_encontrado is None:
             return f"No existe el número {numero} en el Excel.", 404
 
-        # Actualizamos B, C, D
-        fila_encontrada[1].value = nueva_descripcion
-        fila_encontrada[2].value = nuevo_peso
-        fila_encontrada[3].value = nuevo_valor
+        if delete_flag == "on":
+            # ELIMINAR EL OBJETO de 'data'
+            data.pop(idx_encontrado)
+            # Reordenar y reescribir
+            data.sort(key=lambda x: int(x["numero"]))
+            escribir_datos_excel(data)
+            return redirect(url_for("index"))
+        else:
+            # ACTUALIZAR
+            nueva_descripcion = request.form.get("descripcion")
+            nuevo_peso = request.form.get("peso")
+            nuevo_valor = request.form.get("valor")
 
-        # Para columnas E, F, G => (fila_encontrada[4], [5], [6])
-        for idx, celda in enumerate([fila_encontrada[4], fila_encontrada[5], fila_encontrada[6]]):
-            # 1) Si hemos subido una imagen nueva para esta posición => sobrescribimos
-            if rutas_imagenes[idx]:
-                celda.value = f"Ver Imagen {idx+1}"
-                celda.hyperlink = rutas_imagenes[idx]
-                celda.style = "Hyperlink"
-            # 2) Si el checkbox “eliminar” está marcado => borramos la celda
-            elif remove_flags[idx] == "on":
-                celda.value = ""
-                celda.hyperlink = None
-                # celda.style = None  # opcional, para quitarle estilo Hyperlink
+            # Subir hasta 3 imágenes nuevas
+            files = request.files.getlist("imagenes")
+            rutas_imagenes = [None, None, None]
+            for i, file in enumerate(files[:3]):
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                    file.save(filepath)
+                    rutas_imagenes[i] = os.path.join("imagenes_subidas", filename)
 
-        wb.save(EXCEL_FILE)
-        wb.close()
+            # Checkboxes de eliminar imágenes
+            remove_flags = [
+                request.form.get("remove_img1"),
+                request.form.get("remove_img2"),
+                request.form.get("remove_img3")
+            ]
 
-        return redirect(url_for("index"))
+            # Actualizamos los campos
+            data[idx_encontrado]["descripcion"] = nueva_descripcion
+            data[idx_encontrado]["peso"] = nuevo_peso
+            data[idx_encontrado]["valor"] = nuevo_valor
 
-# ----------------------------------
-# Descargar Excel
-# ----------------------------------
+            # Actualizar/borrar imágenes
+            # Si subiste nueva imagen => sobrescribes
+            for i in range(3):
+                if rutas_imagenes[i]:
+                    data[idx_encontrado]["imagenes"][i] = rutas_imagenes[i]
+                elif remove_flags[i] == "on":
+                    data[idx_encontrado]["imagenes"][i] = None
+
+            # Reordenar y reescribir
+            data.sort(key=lambda x: int(x["numero"]))
+            escribir_datos_excel(data)
+
+            return redirect(url_for("index"))
+
+# -------------------------------------------
+#  DESCARGAR EXCEL
+# -------------------------------------------
 @app.route("/descargar-excel")
 def descargar_excel():
     if not os.path.exists(EXCEL_FILE):
@@ -212,9 +255,9 @@ def descargar_excel():
         as_attachment=True
     )
 
-# ----------------------------------
-# Servir imágenes
-# ----------------------------------
+# -------------------------------------------
+#  SERVIR IMÁGENES
+# -------------------------------------------
 @app.route("/imagenes_subidas/<path:filename>")
 def uploaded_images(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)

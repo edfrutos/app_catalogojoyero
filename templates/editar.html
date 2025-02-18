@@ -26,10 +26,9 @@
       </p>
 
       <hr />
-
       <h3>Actualizar / Eliminar Imágenes</h3>
       <p>
-        <label>Subir hasta 3 imágenes (sustituyen las anteriores en su misma posición):</label><br />
+        <label>Subir hasta 3 imágenes:</label><br />
         <input type="file" name="imagenes" multiple accept="image/*" />
       </p>
       <p>
@@ -37,6 +36,15 @@
         <label> <input type="checkbox" name="remove_img1" /> Eliminar Imagen 1 </label><br />
         <label> <input type="checkbox" name="remove_img2" /> Eliminar Imagen 2 </label><br />
         <label> <input type="checkbox" name="remove_img3" /> Eliminar Imagen 3 </label>
+      </p>
+
+      <hr />
+      <h3>Eliminar este registro completo</h3>
+      <p>
+        <label>
+          <input type="checkbox" name="delete_record" />
+          Eliminar fila por completo (este objeto desaparecerá del Excel)
+        </label>
       </p>
 
       <button type="submit">Guardar</button>
