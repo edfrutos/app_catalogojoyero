@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>Catálogo Joyas (Múltiples Imágenes)</title>
+    <title>Catálogo Joyas (Popup de Imágenes)</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -26,40 +26,72 @@
       form {
         margin-bottom: 1.5rem;
       }
-      img {
+      /* Ajuste de miniatura */
+      .thumbnail {
         max-width: 80px;
+        cursor: pointer; /* para indicar que se puede hacer clic */
         margin-top: 0.3rem;
+      }
+
+      /* Estilos para el modal (popup) */
+      .modal {
+        display: none; /* Oculto por defecto */
+        position: fixed; /* Posición fija sobre la pantalla */
+        z-index: 999; /* Aparece por encima de otros elementos */
+        left: 0;
+        top: 0;
+        width: 100%; /* Ocupa todo el ancho */
+        height: 100%; /* Ocupa todo el alto */
+        overflow: auto; /* Permite scroll si la imagen es grande */
+        background-color: rgba(0, 0, 0, 0.8); /* Fondo semitransparente */
+      }
+
+      /* Imagen dentro del modal */
+      .modal-content {
+        display: block;
+        margin: 5% auto;
+        max-width: 90%; /* Máximo 90% del viewport */
+      }
+
+      /* Botón de cerrar (X) */
+      .close {
+        position: absolute;
+        top: 20px;
+        right: 35px;
+        color: #fff;
+        font-size: 40px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .close:hover,
+      .close:focus {
+        color: #bbb;
+        text-decoration: none;
       }
     </style>
   </head>
   <body>
-    <h1>Catálogo Joyas (Múltiples Imágenes)</h1>
+    <h1>Catálogo Joyas (Popup de Imágenes)</h1>
 
-    <!-- Formulario para agregar nueva fila (hasta 3 imágenes) -->
+    <!-- Formulario para agregar nueva fila (sólo ejemplo) -->
     <form method="POST" enctype="multipart/form-data">
       <label for="numero">Número:</label>
       <input type="text" id="numero" name="numero" required />
-
       <label for="descripcion">Descripción:</label>
       <input type="text" id="descripcion" name="descripcion" required />
-
       <label for="peso">Peso (gr):</label>
       <input type="number" step="any" id="peso" name="peso" required />
-
       <label for="valor">Valor:</label>
       <input type="number" step="any" id="valor" name="valor" required />
 
       <br /><br />
       <label>Imágenes (hasta 3):</label>
       <input type="file" name="imagenes" multiple accept="image/*" />
-      <!-- 
-            Al usar name="imagenes" y "multiple",
-            request.files.getlist("imagenes") nos dará todas las subidas
-        -->
 
       <button type="submit">Agregar</button>
     </form>
 
+    <!-- Tabla que muestra los datos leídos del Excel -->
     <table>
       <thead>
         <tr>
@@ -80,8 +112,9 @@
           <td>{{ item.valor }}</td>
           <td>
             {% for ruta in item.imagenes %} {% if ruta %}
-            <a href="{{ '/' + ruta }}" target="_blank">Ver Imagen</a><br />
-            <img src="{{ '/' + ruta }}" alt="Preview" /><br /><br />
+            <!-- Thumbnail clickable. Al hacer clic, se llama a showModal(ruta) -->
+            <img src="{{ '/' + ruta }}" alt="Preview" class="thumbnail" onclick="showModal('{{ '/' + ruta }}')" />
+            <br /><br />
             {% endif %} {% endfor %}
           </td>
           <td>
@@ -95,5 +128,36 @@
     <p>
       <a href="/descargar-excel">Descargar Excel (datos.xlsx)</a>
     </p>
+
+    <!-- El Modal (popup) en sí -->
+    <div id="imageModal" class="modal">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <img class="modal-content" id="modalImage" />
+    </div>
+
+    <script>
+      // Función que abre el modal y asigna la imagen
+      function showModal(imageSrc) {
+        var modal = document.getElementById('imageModal');
+        var modalImg = document.getElementById('modalImage');
+
+        modal.style.display = 'block';
+        modalImg.src = imageSrc;
+      }
+
+      // Función que cierra el modal
+      function closeModal() {
+        var modal = document.getElementById('imageModal');
+        modal.style.display = 'none';
+      }
+
+      // Cerrar el modal si se hace clic fuera de la imagen
+      window.onclick = function (event) {
+        var modal = document.getElementById('imageModal');
+        if (event.target == modal) {
+          closeModal();
+        }
+      };
+    </script>
   </body>
 </html>
