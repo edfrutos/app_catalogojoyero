@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 EXCEL_FILE = "datos.xlsx"
 
-# Carpeta para subir imágenes
+# Carpeta donde guardamos las imágenes subidas
 app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "imagenes_subidas")
 if not os.path.exists(app.config["UPLOAD_FOLDER"]):
     os.makedirs(app.config["UPLOAD_FOLDER"])
@@ -16,35 +16,30 @@ if not os.path.exists(app.config["UPLOAD_FOLDER"]):
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
 def allowed_file(filename):
-    """Comprueba si la extensión del archivo está permitida."""
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # ----------------------------------
-#  RUTA PRINCIPAL: LISTAR Y AÑADIR
+#  RUTA PRINCIPAL (listar y crear)
 # ----------------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        # AÑADIR NUEVO REGISTRO
+        # Crear un nuevo registro
         numero = request.form.get("numero")
         descripcion = request.form.get("descripcion")
         peso = request.form.get("peso")
         valor = request.form.get("valor")
 
-        # Obtener la lista de ficheros subidos (hasta 3)
         files = request.files.getlist("imagenes")
-        # Guardaremos hasta 3 rutas de imágenes
         rutas_imagenes = [None, None, None]
-
-        # Procesar cada archivo (máx. 3)
-        for i, file in enumerate(files[:3]):  # por si suben más de 3
+        for i, file in enumerate(files[:3]):
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
                 file.save(filepath)
                 rutas_imagenes[i] = os.path.join("imagenes_subidas", filename)
 
-        # Crear o cargar Excel
+        # Crear o abrir Excel
         if os.path.exists(EXCEL_FILE):
             wb = load_workbook(EXCEL_FILE)
             hoja = wb.active
@@ -61,7 +56,7 @@ def index():
             hoja["F1"] = "Imagen2 (Ruta)"
             hoja["G1"] = "Imagen3 (Ruta)"
 
-        # Insertar nueva fila al final
+        # Insertamos en la última fila
         nueva_fila = hoja.max_row + 1
         hoja.cell(row=nueva_fila, column=1, value=numero)
         hoja.cell(row=nueva_fila, column=2, value=descripcion)
@@ -78,27 +73,23 @@ def index():
 
         wb.save(EXCEL_FILE)
         wb.close()
-
         return redirect(url_for("index"))
 
-    # GET => MOSTRAR LA TABLA
+    # GET => Listar
     data = []
     if os.path.exists(EXCEL_FILE):
         wb = load_workbook(EXCEL_FILE, read_only=False)
         hoja = wb.active
-
-        # Leer filas (asumiendo fila 1 = cabeceras)
         for row in hoja.iter_rows(min_row=2, max_col=7):
             numero = str(row[0].value)
             descripcion = row[1].value
             peso = row[2].value
             valor = row[3].value
 
-            # Leer hipervínculos en columnas E, F, G => row[4], row[5], row[6]
+            # Extraemos las 3 posibles columnas de imágenes
             imagenes = []
             for celda in [row[4], row[5], row[6]]:
                 if celda and celda.hyperlink:
-                    # Extraer la ruta real
                     imagenes.append(celda.hyperlink.target)
                 else:
                     imagenes.append(None)
@@ -108,24 +99,21 @@ def index():
                 "descripcion": descripcion,
                 "peso": peso,
                 "valor": valor,
-                "imagenes": imagenes  # lista de 3 posibles rutas
+                "imagenes": imagenes
             })
         wb.close()
 
     return render_template("index.html", data=data)
 
 # ----------------------------------
-#  RUTA PARA EDITAR
+#  RUTA PARA EDITAR (incluye eliminar imágenes)
 # ----------------------------------
 @app.route("/editar/<numero>", methods=["GET", "POST"])
 def editar(numero):
-    """
-    - GET: Mostrar formulario con datos actuales.  
-    - POST: Actualiza la fila (descripción, peso, valor) y/o sustituir imágenes.
-    """
     if request.method == "GET":
+        # Mostrar el formulario con datos actuales
         if not os.path.exists(EXCEL_FILE):
-            return "No existe el Excel.", 404
+            return "No existe el archivo Excel.", 404
 
         wb = load_workbook(EXCEL_FILE, read_only=False)
         hoja = wb.active
@@ -138,7 +126,7 @@ def editar(numero):
                     "numero": valor_numero,
                     "descripcion": row[1].value,
                     "peso": row[2].value,
-                    "valor": row[3].value,
+                    "valor": row[3].value
                 }
                 break
         wb.close()
@@ -148,12 +136,12 @@ def editar(numero):
 
         return render_template("editar.html", registro=registro)
     else:
-        # POST => Actualizar
+        # POST => Guardar cambios
         nueva_descripcion = request.form.get("descripcion")
         nuevo_peso = request.form.get("peso")
         nuevo_valor = request.form.get("valor")
 
-        # Capturar hasta 3 imágenes nuevas
+        # Subir hasta 3 imágenes nuevas
         files = request.files.getlist("imagenes")
         rutas_imagenes = [None, None, None]
         for i, file in enumerate(files[:3]):
@@ -163,8 +151,16 @@ def editar(numero):
                 file.save(filepath)
                 rutas_imagenes[i] = os.path.join("imagenes_subidas", filename)
 
+        # Checkboxes de eliminar
+        # Nombre en editar.html: remove_img1, remove_img2, remove_img3
+        remove_flags = [
+            request.form.get("remove_img1"),
+            request.form.get("remove_img2"),
+            request.form.get("remove_img3")
+        ]
+
         if not os.path.exists(EXCEL_FILE):
-            return "No existe el Excel.", 404
+            return "No existe el archivo Excel.", 404
 
         wb = load_workbook(EXCEL_FILE)
         hoja = wb.active
@@ -180,20 +176,23 @@ def editar(numero):
             wb.close()
             return f"No existe el número {numero} en el Excel.", 404
 
-        # Sobrescribimos datos en las celdas B, C, D
+        # Actualizamos B, C, D
         fila_encontrada[1].value = nueva_descripcion
         fila_encontrada[2].value = nuevo_peso
         fila_encontrada[3].value = nuevo_valor
 
-        # Actualizar las imágenes si se subieron
-        # Columnas E=4, F=5, G=6 (en zero-based indexing) => (row[4], row[5], row[6])
+        # Para columnas E, F, G => (fila_encontrada[4], [5], [6])
         for idx, celda in enumerate([fila_encontrada[4], fila_encontrada[5], fila_encontrada[6]]):
+            # 1) Si hemos subido una imagen nueva para esta posición => sobrescribimos
             if rutas_imagenes[idx]:
-                # Sustituimos la imagen en la columna correspondiente
                 celda.value = f"Ver Imagen {idx+1}"
                 celda.hyperlink = rutas_imagenes[idx]
                 celda.style = "Hyperlink"
-            # Si no subes nada para esa columna, se deja la anterior
+            # 2) Si el checkbox “eliminar” está marcado => borramos la celda
+            elif remove_flags[idx] == "on":
+                celda.value = ""
+                celda.hyperlink = None
+                # celda.style = None  # opcional, para quitarle estilo Hyperlink
 
         wb.save(EXCEL_FILE)
         wb.close()
@@ -201,7 +200,7 @@ def editar(numero):
         return redirect(url_for("index"))
 
 # ----------------------------------
-#  DESCARGAR EXCEL
+# Descargar Excel
 # ----------------------------------
 @app.route("/descargar-excel")
 def descargar_excel():
@@ -214,7 +213,7 @@ def descargar_excel():
     )
 
 # ----------------------------------
-#  SERVIR IMÁGENES
+# Servir imágenes
 # ----------------------------------
 @app.route("/imagenes_subidas/<path:filename>")
 def uploaded_images(filename):
