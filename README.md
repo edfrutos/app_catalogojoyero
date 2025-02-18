@@ -110,11 +110,3 @@ Puedes usar este proyecto como base para tu catálogo, adaptarlo, agregar valida
 ---
 
 ¡Y con esto tendrás tu catálogo de joyas en Flask, guardando y mostrando **múltiples imágenes** por fila en tu Excel!
-
-```sh
-
-```
-
-```sh
-
-```
