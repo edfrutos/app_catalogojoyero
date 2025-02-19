@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Iniciar Sesión</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Iniciar Sesión</h1>
+
+      <form method="POST">
+        <p>
+          <label for="email">Email:</label>
+          <input type="text" id="email" name="email" required />
+        </p>
+        <p>
+          <label for="password">Contraseña:</label>
+          <input type="password" id="password" name="password" required />
+        </p>
+        <button type="submit">Acceder</button>
+        <br /><br />
+        <a href="/recover">¿Olvidaste tu contraseña?</a>
+        <br />
+        <a href="/register">¿No tienes cuenta? Regístrate aquí</a>
+      </form>
+    </div>
+  </body>
+</html>

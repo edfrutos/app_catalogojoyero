@@ -1,7 +1,12 @@
 app_catalogojoyero/
-├── app.py
-├── imagenes_subidas/        (Aquí se guardan los archivos de imagen)
+├── app.py                   # Archivo Flask principal
+├── auth.py                  # (Opcional) Módulo de rutas de autenticación
+├── static/
+│   └── styles.css           # Hoja de estilos
 ├── templates/
 │   ├── index.html
-│   └── editar.html
-└── datos.xlsx               (Tu Excel con datos previos)
+|   ├── editar.html            # Plantilla base
+│   ├── register.html        # Form de registro
+│   ├── login.html           # Form de login
+│   └── recover.html         # Form de recuperar contraseña
+└── requirements.txt         # Dependencias (Flask, PyMongo, etc.)
