@@ -3,12 +3,13 @@ app_catalogojoyero/
 ├── static/
 │   └── styles.css
 ├── templates/
-│   ├── index.html
-│   ├── editar.html
 │   ├── register.html
 │   ├── login.html
 │   ├── forgot_password.html
-│   └── reset_password_form.html
-├── imagenes_subidas/
-├── datos.xlsx
+│   ├── reset_password_form.html
+│   ├── tables.html             # Listado y creación de tablas
+│   ├── index.html              # Catálogo de la tabla seleccionada
+│   └── editar.html             # Edición de registros de la tabla seleccionada
+├── imagenes_subidas/           # Imágenes para el catálogo
+├── spreadsheets/               # Aquí se guardarán los archivos Excel de las tablas
 └── requirements.txt

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mis Tablas de Catálogo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="container">
+      {% if session.usuario %}
+      <div style="float: right">
+        <button type="button" onclick="window.location.href='/logout'">Cerrar Sesión ({{ session.usuario }})</button>
+      </div>
+      {% endif %}
+      <h1>Mis Tablas de Catálogo</h1>
+
+      <h2>Crear o Importar Tabla</h2>
+      <form method="POST" enctype="multipart/form-data">
+        <p>
+          <label for="table_name">Nombre de la Tabla:</label>
+          <input type="text" id="table_name" name="table_name" required />
+        </p>
+        <p>
+          <label for="import_table">Importar tabla (archivo Excel):</label>
+          <input type="file" id="import_table" name="import_table" accept=".xlsx" />
+          <small>(Si no subes archivo, se creará una tabla vacía)</small>
+        </p>
+        <button type="submit">Crear/Importar Tabla</button>
+      </form>
+
+      <hr />
+      <h2>Tablas Creadas</h2>
+      {% if tables %}
+      <ul>
+        {% for table in tables %}
+        <li>
+          <strong>{{ table.name }}</strong> - Creada el {{ table.created_at.strftime("%Y-%m-%d %H:%M") }}
+          <a href="/select_table/{{ table._id }}">Seleccionar</a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>No has creado ninguna tabla todavía.</p>
+      {% endif %}
+
+      <br />
+      <a href="/logout">Cerrar Sesión</a>
+    </div>
+  </body>
+</html>

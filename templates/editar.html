@@ -2,21 +2,18 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>Editar Joya</title>
+    <title>Editar Registro</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   </head>
   <body>
     <div class="container">
-      <!-- Si hay alguien logueado, muestra botón de Cerrar Sesión -->
       {% if session.usuario %}
       <div style="float: right">
         <button type="button" onclick="window.location.href='/logout'">Cerrar Sesión ({{ session.usuario }})</button>
       </div>
       {% endif %}
-
       <h1>Editar el registro #{{ registro.numero }}</h1>
 
-      <!-- Mensaje de error o info (opcional) -->
       {% if error_message %}
       <p style="color: red; font-weight: bold">{{ error_message }}</p>
       {% endif %}
@@ -38,7 +35,6 @@
           <label>Valor:</label>
           <input type="number" step="any" name="valor" value="{{ registro.valor }}" required />
         </p>
-
         <hr />
         <h3>Actualizar / Eliminar Imágenes</h3>
         <p>
@@ -47,11 +43,10 @@
         </p>
         <p>
           <strong>Eliminar imágenes existentes:</strong><br />
-          <label> <input type="checkbox" name="remove_img1" /> Eliminar Imagen 1 </label><br />
-          <label> <input type="checkbox" name="remove_img2" /> Eliminar Imagen 2 </label><br />
-          <label> <input type="checkbox" name="remove_img3" /> Eliminar Imagen 3 </label>
+          <label><input type="checkbox" name="remove_img1" /> Eliminar Imagen 1</label><br />
+          <label><input type="checkbox" name="remove_img2" /> Eliminar Imagen 2</label><br />
+          <label><input type="checkbox" name="remove_img3" /> Eliminar Imagen 3</label>
         </p>
-
         <hr />
         <h3>Eliminar este registro completo</h3>
         <p>
@@ -60,10 +55,8 @@
             Eliminar fila por completo
           </label>
         </p>
-
-        <!-- Botones de acción -->
         <button type="submit">Guardar</button>
-        <button type="button" class="cancel-btn" onclick="window.location.href='/'">Cancelar</button>
+        <button type="button" onclick="window.location.href='/catalog'">Cancelar</button>
       </form>
     </div>
   </body>

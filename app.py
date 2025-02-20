@@ -13,6 +13,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from pymongo import MongoClient
 from flask_mail import Mail, Message
+from bson import ObjectId
 
 # -------------------------------------------
 # CONFIGURACIÓN FLASK
@@ -20,12 +21,15 @@ from flask_mail import Mail, Message
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "CAMBIA_ESTA_CLAVE_EN_PRODUCCION")
 
-EXCEL_FILE = "datos.xlsx"
-
-# Carpeta para imágenes subidas (para el catálogo de joyas)
+# Carpeta para imágenes del catálogo
 app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "imagenes_subidas")
 if not os.path.exists(app.config["UPLOAD_FOLDER"]):
     os.makedirs(app.config["UPLOAD_FOLDER"])
+
+# Carpeta para hojas de cálculo (tablas)
+SPREADSHEET_FOLDER = os.path.join(app.root_path, "spreadsheets")
+if not os.path.exists(SPREADSHEET_FOLDER):
+    os.makedirs(SPREADSHEET_FOLDER)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 def allowed_file(filename):
@@ -41,7 +45,6 @@ app.config["MAIL_USERNAME"] = "admin@edefrutos.me"
 app.config["MAIL_PASSWORD"] = "Rmp3UXwsIkvA0c1d"
 app.config["MAIL_DEFAULT_SENDER"] = ("Administrador", "admin@edefrutos.me")
 app.config["MAIL_DEBUG"] = True
-
 mail = Mail(app)
 
 # -------------------------------------------
@@ -52,14 +55,15 @@ client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client["app_catalogojoyero"]
 users_collection = db["users"]
 resets_collection = db["password_resets"]
+spreadsheets_collection = db["spreadsheets"]
 
 # -------------------------------------------
-# MANEJO DE EXCEL - FUNCIONES AUXILIARES
+# FUNCIONES AUXILIARES PARA HOJAS DE CÁLCULO
 # -------------------------------------------
-def leer_datos_excel():
-    if not os.path.exists(EXCEL_FILE):
+def leer_datos_excel(filename):
+    if not os.path.exists(filename):
         return []
-    wb = load_workbook(EXCEL_FILE, read_only=False)
+    wb = load_workbook(filename, read_only=False)
     hoja = wb.active
     data = []
     for row in hoja.iter_rows(min_row=2, max_col=7):
@@ -86,7 +90,7 @@ def leer_datos_excel():
     wb.close()
     return data
 
-def escribir_datos_excel(data):
+def escribir_datos_excel(data, filename):
     wb = Workbook()
     hoja = wb.active
     hoja.title = "Datos"
@@ -111,13 +115,18 @@ def escribir_datos_excel(data):
                 celda.hyperlink = ruta
                 celda.style = "Hyperlink"
         fila += 1
-    wb.save(EXCEL_FILE)
+    wb.save(filename)
     wb.close()
+
+def get_current_spreadsheet():
+    filename = session.get("selected_table")
+    if not filename:
+        return None
+    return os.path.join(SPREADSHEET_FOLDER, filename)
 
 # -------------------------------------------
 # RUTAS DE AUTENTICACIÓN
 # -------------------------------------------
-
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -138,7 +147,6 @@ def login():
     if request.method == "POST":
         login_input = request.form.get("login_input").strip()
         password = request.form.get("password").strip()
-        # Usamos regex para comparación case-insensitive
         usuario = users_collection.find_one({
             "$or": [
                 {"nombre": {"$regex": f"^{login_input}$", "$options": "i"}},
@@ -149,7 +157,7 @@ def login():
             return "Error: Usuario no encontrado. <a href='/login'>Reintentar</a>"
         if check_password_hash(usuario["password"], password):
             session["usuario"] = usuario["nombre"]
-            return redirect(url_for("index"))
+            return redirect(url_for("home"))
         else:
             return "Error: Contraseña incorrecta. <a href='/login'>Reintentar</a>"
     else:
@@ -169,7 +177,6 @@ def recover_redirect():
 def forgot_password():
     if request.method == "POST":
         usuario_input = request.form.get("usuario").strip()
-        # Buscar por email o nombre de forma case-insensitive
         user = users_collection.find_one({
             "$or": [
                 {"email": {"$regex": f"^{usuario_input}$", "$options": "i"}},
@@ -218,14 +225,78 @@ def reset_password():
         return render_template("reset_password_form.html", token=token)
 
 # -------------------------------------------
-# RUTAS DEL CATÁLOGO (Excel e imágenes)
+# RUTAS PARA GESTIÓN DE TABLAS (SpreadSheets)
 # -------------------------------------------
-@app.route("/", methods=["GET", "POST"])
-def index():
+@app.route("/")
+def home():
     if "usuario" not in session:
         return redirect(url_for("login"))
+    if "selected_table" in session:
+        return redirect(url_for("catalog"))
+    else:
+        return redirect(url_for("tables"))
+
+@app.route("/tables", methods=["GET", "POST"])
+def tables():
+    if "usuario" not in session:
+        return redirect(url_for("login"))
+    owner = session["usuario"]
     if request.method == "POST":
-        data = leer_datos_excel()
+        table_name = request.form.get("table_name").strip()
+        import_file = request.files.get("import_table")
+        if import_file and import_file.filename != "":
+            filename = secure_filename(import_file.filename)
+            filepath = os.path.join(SPREADSHEET_FOLDER, filename)
+            import_file.save(filepath)
+        else:
+            file_id = secrets.token_hex(8)
+            filename = f"table_{file_id}.xlsx"
+            filepath = os.path.join(SPREADSHEET_FOLDER, filename)
+            wb = Workbook()
+            hoja = wb.active
+            hoja.title = "Datos"
+            hoja["A1"] = "Número"
+            hoja["B1"] = "Descripción"
+            hoja["C1"] = "Peso"
+            hoja["D1"] = "Valor"
+            hoja["E1"] = "Imagen1 (Ruta)"
+            hoja["F1"] = "Imagen2 (Ruta)"
+            hoja["G1"] = "Imagen3 (Ruta)"
+            wb.save(filepath)
+            wb.close()
+        spreadsheets_collection.insert_one({
+            "owner": owner,
+            "name": table_name,
+            "filename": filename,
+            "created_at": datetime.utcnow()
+        })
+        return redirect(url_for("tables"))
+    else:
+        tables = list(spreadsheets_collection.find({"owner": session["usuario"]}))
+        return render_template("tables.html", tables=tables)
+
+@app.route("/select_table/<table_id>")
+def select_table(table_id):
+    if "usuario" not in session:
+        return redirect(url_for("login"))
+    table = spreadsheets_collection.find_one({"_id": ObjectId(table_id)})
+    if not table:
+        return "Tabla no encontrada."
+    session["selected_table"] = table["filename"]
+    return redirect(url_for("catalog"))
+
+# -------------------------------------------
+# RUTAS DEL CATÁLOGO (Excel e imágenes)
+# -------------------------------------------
+@app.route("/catalog", methods=["GET", "POST"])
+def catalog():
+    if "usuario" not in session:
+        return redirect(url_for("login"))
+    spreadsheet_path = get_current_spreadsheet()
+    if not spreadsheet_path or not os.path.exists(spreadsheet_path):
+        return redirect(url_for("tables"))
+    if request.method == "POST":
+        data = leer_datos_excel(spreadsheet_path)
         numero = request.form.get("numero").strip()
         descripcion = request.form.get("descripcion").strip()
         peso = request.form.get("peso")
@@ -236,10 +307,10 @@ def index():
         rutas_imagenes = [None, None, None]
         for i, file in enumerate(files[:3]):
             if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-                file.save(filepath)
-                rutas_imagenes[i] = os.path.join("imagenes_subidas", filename)
+                fname = secure_filename(file.filename)
+                fpath = os.path.join(app.config["UPLOAD_FOLDER"], fname)
+                file.save(fpath)
+                rutas_imagenes[i] = os.path.join("imagenes_subidas", fname)
         nuevo_registro = {
             "numero": numero,
             "descripcion": descripcion,
@@ -248,24 +319,27 @@ def index():
             "imagenes": rutas_imagenes
         }
         data.append(nuevo_registro)
-        escribir_datos_excel(data)
+        escribir_datos_excel(data, spreadsheet_path)
         return render_template("index.html", data=data, error_message="Registro agregado con éxito.")
     else:
-        data = leer_datos_excel()
+        data = leer_datos_excel(get_current_spreadsheet())
         return render_template("index.html", data=data)
 
 @app.route("/editar/<numero>", methods=["GET", "POST"])
 def editar(numero):
     if "usuario" not in session:
         return redirect(url_for("login"))
+    spreadsheet_path = get_current_spreadsheet()
+    if not spreadsheet_path or not os.path.exists(spreadsheet_path):
+        return redirect(url_for("tables"))
     if request.method == "GET":
-        data = leer_datos_excel()
+        data = leer_datos_excel(spreadsheet_path)
         registro = next((item for item in data if item["numero"] == str(numero)), None)
         if not registro:
             return f"No existe el número {numero}."
         return render_template("editar.html", registro=registro)
     else:
-        data = leer_datos_excel()
+        data = leer_datos_excel(spreadsheet_path)
         idx_encontrado = None
         for i, item in enumerate(data):
             if item["numero"] == str(numero):
@@ -276,8 +350,8 @@ def editar(numero):
         delete_flag = request.form.get("delete_record")
         if delete_flag == "on":
             data.pop(idx_encontrado)
-            escribir_datos_excel(data)
-            return redirect(url_for("index"))
+            escribir_datos_excel(data, spreadsheet_path)
+            return redirect(url_for("catalog"))
         else:
             nueva_descripcion = request.form.get("descripcion").strip()
             nuevo_peso = request.form.get("peso")
@@ -286,10 +360,10 @@ def editar(numero):
             rutas_imagenes = [None, None, None]
             for i, file in enumerate(files[:3]):
                 if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-                    file.save(filepath)
-                    rutas_imagenes[i] = os.path.join("imagenes_subidas", filename)
+                    fname = secure_filename(file.filename)
+                    fpath = os.path.join(app.config["UPLOAD_FOLDER"], fname)
+                    file.save(fpath)
+                    rutas_imagenes[i] = os.path.join("imagenes_subidas", fname)
             remove_flags = [
                 request.form.get("remove_img1"),
                 request.form.get("remove_img2"),
@@ -303,20 +377,24 @@ def editar(numero):
                     data[idx_encontrado]["imagenes"][i] = rutas_imagenes[i]
                 elif remove_flags[i] == "on":
                     data[idx_encontrado]["imagenes"][i] = None
-            escribir_datos_excel(data)
-            return redirect(url_for("index"))
+            escribir_datos_excel(data, spreadsheet_path)
+            return redirect(url_for("catalog"))
 
 @app.route("/descargar-excel")
 def descargar_excel():
     if "usuario" not in session:
         return redirect(url_for("login"))
-    if not os.path.exists(EXCEL_FILE):
+    spreadsheet_path = get_current_spreadsheet()
+    if not spreadsheet_path or not os.path.exists(spreadsheet_path):
         return "El Excel no existe aún."
-    return send_from_directory(app.root_path, EXCEL_FILE, as_attachment=True)
+    return send_from_directory(os.path.dirname(spreadsheet_path), os.path.basename(spreadsheet_path), as_attachment=True)
 
 @app.route("/imagenes_subidas/<path:filename>")
 def uploaded_images(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
+# -------------------------------------------
+# MAIN
+# -------------------------------------------
 if __name__ == "__main__":
     app.run(debug=True)

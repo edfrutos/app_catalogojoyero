@@ -7,13 +7,12 @@
   </head>
   <body>
     <div class="container">
-      <!-- Si hay alguien logueado, muestra botón de Cerrar Sesión -->
+      <!-- Botón de Cerrar Sesión (si hay usuario) -->
       {% if session.usuario %}
       <div style="float: right">
         <button type="button" onclick="window.location.href='/logout'">Cerrar Sesión ({{ session.usuario }})</button>
       </div>
       {% endif %}
-
       <h1>Catálogo Joyas (Popup de Imágenes)</h1>
 
       <!-- Mensaje de error o info (opcional) -->
@@ -42,7 +41,7 @@
         <button type="submit">Agregar</button>
       </form>
 
-      <!-- Tabla con los datos de Excel -->
+      <!-- Tabla con los registros -->
       <table>
         <thead>
           <tr>
@@ -63,7 +62,6 @@
             <td>{{ item.valor }}</td>
             <td>
               {% for ruta in item.imagenes %} {% if ruta %}
-              <!-- Miniatura clicable que abre el popup -->
               <img src="{{ '/' + ruta }}" alt="Preview" class="thumbnail" onclick="showModal('{{ '/' + ruta }}')" />
               <br /><br />
               {% endif %} {% endfor %}
@@ -76,51 +74,41 @@
         </tbody>
       </table>
 
-      <!-- Botón / enlace para descargar Excel -->
+      <br />
       <a class="download-link" href="/descargar-excel">Descargar Excel (datos.xlsx)</a>
     </div>
 
-    <!-- Botón flotante "Volver arriba" (opcional) -->
+    <!-- Botón flotante "Volver arriba" -->
     <button type="button" class="scroll-top-btn" onclick="scrollToTop()">Volver arriba</button>
 
-    <!-- Popup (modal) con el contenedor centrado y ancho max 1200px -->
+    <!-- Modal para imagen ampliada -->
     <div id="imageModal" class="modal">
       <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
-        <!-- Imagen ampliada -->
         <img id="modalImage" src="" alt="Imagen ampliada" />
       </div>
     </div>
 
     <script>
-      // Mostrar el modal con la imagen
       function showModal(imageSrc) {
         var modal = document.getElementById('imageModal');
         var modalImg = document.getElementById('modalImage');
         modal.style.display = 'block';
         modalImg.src = imageSrc;
       }
-
-      // Cerrar el modal
       function closeModal() {
         var modal = document.getElementById('imageModal');
         modal.style.display = 'none';
       }
-
-      // Si se hace clic fuera del contenedor, también cerramos
       window.onclick = function (event) {
         var modal = document.getElementById('imageModal');
         if (event.target === modal) {
           closeModal();
         }
       };
-
-      // Función para hacer scroll arriba con suavidad
       function scrollToTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
-
-      // Mostrar/ocultar botón "Volver arriba" según scroll
       window.addEventListener('scroll', function () {
         var scrollBtn = document.querySelector('.scroll-top-btn');
         if (window.scrollY > 300) {

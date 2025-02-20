@@ -5,7 +5,6 @@
     <title>Iniciar Sesión</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
     <style>
-      /* Estilo para el botón "ojo" */
       .toggle-password {
         cursor: pointer;
         margin-left: -30px;
@@ -18,7 +17,10 @@
     <div class="container">
       <h1>Iniciar Sesión</h1>
       {% if session.usuario %}
-      <p>Ya estás logueado como {{ session.usuario }}. <a href="/logout">Cerrar Sesión</a></p>
+      <p>
+        Ya estás logueado como {{ session.usuario }}.
+        <button type="button" onclick="window.location.href='/logout'">Cerrar Sesión</button>
+      </p>
       {% else %}
       <form method="POST">
         <p>
@@ -40,11 +42,7 @@
     <script>
       function togglePassword(id) {
         var input = document.getElementById(id);
-        if (input.type === 'password') {
-          input.type = 'text';
-        } else {
-          input.type = 'password';
-        }
+        input.type = input.type === 'password' ? 'text' : 'password';
       }
     </script>
   </body>
