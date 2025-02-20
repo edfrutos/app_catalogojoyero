@@ -1,75 +1,81 @@
 import os
 import certifi
-import ssl
-from flask import Flask, request, render_template, redirect, url_for, send_from_directory, session
+import secrets
+from datetime import datetime, timedelta
+
+from flask import (
+    Flask, request, render_template, redirect, url_for,
+    send_from_directory, session, flash
+)
 import openpyxl
 from openpyxl import load_workbook, Workbook
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from pymongo import MongoClient
+from flask_mail import Mail, Message
 
 # -------------------------------------------
-#  CONFIGURACIÓN FLASK
+# CONFIGURACIÓN FLASK
 # -------------------------------------------
 app = Flask(__name__)
-app.secret_key = os.environ.get("0d3393c333bcfe04b73c219f7c153df4d16027d2ba242d61", "fallback_key_in_dev") # Pon algo más seguro en producción
+app.secret_key = os.environ.get("SECRET_KEY", "CAMBIA_ESTA_CLAVE_EN_PRODUCCION")
 
 EXCEL_FILE = "datos.xlsx"
 
-# Carpeta donde guardamos las imágenes subidas (para el catálogo de joyas)
+# Carpeta para imágenes subidas (para el catálogo de joyas)
 app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "imagenes_subidas")
 if not os.path.exists(app.config["UPLOAD_FOLDER"]):
     os.makedirs(app.config["UPLOAD_FOLDER"])
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
-
 def allowed_file(filename):
-    """Verifica si la extensión es válida."""
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # -------------------------------------------
-#  CONEXIÓN A MONGODB ATLAS
+# CONFIGURACIÓN DE EMAIL (Flask-Mail)
 # -------------------------------------------
-# Según indicas, tu MONGO_URI y DB son:
+app.config["MAIL_SERVER"] = "smtp-relay.brevo.com"
+app.config["MAIL_PORT"] = 587
+app.config["MAIL_USE_TLS"] = True
+app.config["MAIL_USERNAME"] = "admin@edefrutos.me"
+app.config["MAIL_PASSWORD"] = "Rmp3UXwsIkvA0c1d"
+app.config["MAIL_DEFAULT_SENDER"] = ("Administrador", "admin@edefrutos.me")
+app.config["MAIL_DEBUG"] = True
+
+mail = Mail(app)
+
+# -------------------------------------------
+# CONEXIÓN A MONGODB ATLAS
+# -------------------------------------------
 MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/"
-# Conexión usando certifi para resolver el CERTIFICATE_VERIFY_FAILED
 client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
-
-db = client["app_catalogojoyero"]  # Tu base de datos
-users_collection = db["users"]     # Colección 'users'
+db = client["app_catalogojoyero"]
+users_collection = db["users"]
+resets_collection = db["password_resets"]
 
 # -------------------------------------------
-#  MANEJO EXCEL - FUNCIONES AUXILIARES
+# MANEJO DE EXCEL - FUNCIONES AUXILIARES
 # -------------------------------------------
-
 def leer_datos_excel():
-    """Lee todos los registros de 'datos.xlsx' y retorna una lista de diccionarios."""
     if not os.path.exists(EXCEL_FILE):
         return []
-
     wb = load_workbook(EXCEL_FILE, read_only=False)
     hoja = wb.active
-
     data = []
-    # Asumimos fila 1 = cabeceras
     for row in hoja.iter_rows(min_row=2, max_col=7):
         numero = row[0].value
         if numero is None:
             continue
         numero = str(numero)
-
         descripcion = row[1].value
         peso = row[2].value
         valor = row[3].value
-
-        # Columnas E, F, G => imágenes
         imagenes = []
-        for celda_imagen in row[4:7]:  # E,F,G
-            if celda_imagen and celda_imagen.hyperlink:
-                imagenes.append(celda_imagen.hyperlink.target)
+        for celda in row[4:7]:
+            if celda and celda.hyperlink:
+                imagenes.append(celda.hyperlink.target)
             else:
                 imagenes.append(None)
-
         data.append({
             "numero": numero,
             "descripcion": descripcion,
@@ -77,17 +83,13 @@ def leer_datos_excel():
             "valor": valor,
             "imagenes": imagenes
         })
-
     wb.close()
     return data
 
 def escribir_datos_excel(data):
-    """Sobrescribe 'datos.xlsx' con la info en 'data', manteniendo columnas E, F, G para imágenes."""
     wb = Workbook()
     hoja = wb.active
     hoja.title = "Datos"
-
-    # Cabeceras
     hoja["A1"] = "Número"
     hoja["B1"] = "Descripción"
     hoja["C1"] = "Peso"
@@ -95,54 +97,38 @@ def escribir_datos_excel(data):
     hoja["E1"] = "Imagen1 (Ruta)"
     hoja["F1"] = "Imagen2 (Ruta)"
     hoja["G1"] = "Imagen3 (Ruta)"
-
     fila = 2
     for item in data:
         hoja.cell(row=fila, column=1, value=item["numero"])
         hoja.cell(row=fila, column=2, value=item["descripcion"])
         hoja.cell(row=fila, column=3, value=item["peso"])
         hoja.cell(row=fila, column=4, value=item["valor"])
-
-        # Imágenes
-        for idx, col in enumerate([5, 6, 7]):  # E,F,G
+        for idx, col in enumerate([5, 6, 7]):
             ruta = item["imagenes"][idx]
             if ruta:
                 celda = hoja.cell(row=fila, column=col)
                 celda.value = f"Ver Imagen {idx+1}"
                 celda.hyperlink = ruta
                 celda.style = "Hyperlink"
-
         fila += 1
-
     wb.save(EXCEL_FILE)
     wb.close()
 
-
 # -------------------------------------------
-#  RUTAS DE AUTENTICACIÓN
+# RUTAS DE AUTENTICACIÓN
 # -------------------------------------------
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        nombre = request.form.get("nombre")
-        email = request.form.get("email")
-        password = request.form.get("password")
-
-        # Verificar si ya existe el email
-        user_existente = users_collection.find_one({"email": email})
-        if user_existente:
+        nombre = request.form.get("nombre").strip()
+        email = request.form.get("email").strip().lower()
+        password = request.form.get("password").strip()
+        if users_collection.find_one({"email": email}):
             return "Error: Ese email ya está registrado. <a href='/register'>Volver</a>"
-
-        # Insertar nuevo usuario
-        hashed_pass = generate_password_hash(password)
-        nuevo_usuario = {
-            "nombre": nombre,
-            "email": email,
-            "password": hashed_pass
-        }
+        hashed = generate_password_hash(password)
+        nuevo_usuario = {"nombre": nombre, "email": email, "password": hashed}
         users_collection.insert_one(nuevo_usuario)
-
         return "Registro exitoso. <a href='/login'>Iniciar Sesión</a>"
     else:
         return render_template("register.html")
@@ -150,78 +136,102 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
-
-        usuario = users_collection.find_one({"email": email})
-        if not usuario:
-            return "Error: No existe ese usuario. <a href='/login'>Intentar de nuevo</a>"
-
-        if check_password_hash(usuario["password"], password):
-            session["email"] = email
-            return redirect(url_for("index"))
-        else:
-            return "Error: Contraseña incorrecta. <a href='/login'>Intentar de nuevo</a>"
-    else:
-        return render_template("login.html")
-
-@app.route("/recover", methods=["GET", "POST"])
-def recover():
-    if request.method == "POST":
-        # Recuperación por nombre o email
-        usuario = request.form.get("usuario")   # Introducen email o nombre
-        nueva_password = request.form.get("password")
-
-        # Buscar si coincide con email o con nombre
-        encontrado = users_collection.find_one({
+        login_input = request.form.get("login_input").strip()
+        password = request.form.get("password").strip()
+        # Usamos regex para comparación case-insensitive
+        usuario = users_collection.find_one({
             "$or": [
-                {"email": usuario},
-                {"nombre": usuario}
+                {"nombre": {"$regex": f"^{login_input}$", "$options": "i"}},
+                {"email": {"$regex": f"^{login_input}$", "$options": "i"}}
             ]
         })
-        if not encontrado:
-            return "Error: No existe un usuario con ese nombre o email. <a href='/recover'>Intentar de nuevo</a>"
-
-        # Actualizar la contraseña
-        new_hashed_pass = generate_password_hash(nueva_password)
-        users_collection.update_one(
-            {"_id": encontrado["_id"]},
-            {"$set": {"password": new_hashed_pass}}
-        )
-
-        return "Tu contraseña ha sido actualizada. <a href='/login'>Inicia Sesión</a>"
+        if not usuario:
+            return "Error: Usuario no encontrado. <a href='/login'>Reintentar</a>"
+        if check_password_hash(usuario["password"], password):
+            session["usuario"] = usuario["nombre"]
+            return redirect(url_for("index"))
+        else:
+            return "Error: Contraseña incorrecta. <a href='/login'>Reintentar</a>"
     else:
-        return render_template("recover.html")
+        return render_template("login.html")
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("index"))
+    return redirect(url_for("login"))
 
+# Redirección de /recover a /forgot-password
+@app.route("/recover")
+def recover_redirect():
+    return redirect(url_for("forgot_password"))
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        usuario_input = request.form.get("usuario").strip()
+        # Buscar por email o nombre de forma case-insensitive
+        user = users_collection.find_one({
+            "$or": [
+                {"email": {"$regex": f"^{usuario_input}$", "$options": "i"}},
+                {"nombre": {"$regex": f"^{usuario_input}$", "$options": "i"}}
+            ]
+        })
+        if not user:
+            return "No se encontró ningún usuario con ese nombre o email. <a href='/forgot-password'>Volver</a>"
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.utcnow() + timedelta(minutes=30)
+        resets_collection.insert_one({
+            "user_id": user["_id"],
+            "token": token,
+            "expires_at": expires_at,
+            "used": False
+        })
+        reset_link = url_for("reset_password", token=token, _external=True)
+        msg = Message("Recuperación de contraseña", recipients=[user["email"]])
+        msg.body = (f"Hola {user['nombre']},\n\nPara restablecer tu contraseña, haz clic en el siguiente enlace:\n"
+                    f"{reset_link}\n\nEste enlace caduca en 30 minutos.")
+        mail.send(msg)
+        return "Se ha enviado un enlace de recuperación a tu email. <a href='/login'>Inicia Sesión</a>"
+    else:
+        return render_template("forgot_password.html")
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    token = request.args.get("token") or request.form.get("token")
+    if not token:
+        return "Token no proporcionado."
+    reset_info = resets_collection.find_one({"token": token})
+    if not reset_info:
+        return "Token inválido o inexistente."
+    if reset_info["used"]:
+        return "Este token ya ha sido utilizado."
+    if datetime.utcnow() > reset_info["expires_at"]:
+        return "Token caducado."
+    if request.method == "POST":
+        new_pass = request.form.get("password").strip()
+        hashed = generate_password_hash(new_pass)
+        user_id = reset_info["user_id"]
+        users_collection.update_one({"_id": user_id}, {"$set": {"password": hashed}})
+        resets_collection.update_one({"_id": reset_info["_id"]}, {"$set": {"used": True}})
+        return "Contraseña actualizada con éxito. <a href='/login'>Inicia Sesión</a>"
+    else:
+        return render_template("reset_password_form.html", token=token)
 
 # -------------------------------------------
-#  RUTAS PRINCIPALES DEL CATÁLOGO (EXCEL)
+# RUTAS DEL CATÁLOGO (Excel e imágenes)
 # -------------------------------------------
-
 @app.route("/", methods=["GET", "POST"])
 def index():
-    """Muestra tabla + formulario de alta si estás logueado."""
-    if "email" not in session:
+    if "usuario" not in session:
         return redirect(url_for("login"))
-
     if request.method == "POST":
         data = leer_datos_excel()
-
-        numero = request.form.get("numero")
-        descripcion = request.form.get("descripcion")
+        numero = request.form.get("numero").strip()
+        descripcion = request.form.get("descripcion").strip()
         peso = request.form.get("peso")
         valor = request.form.get("valor")
-
-        # Ver si el numero ya existe
-        existe = any(item["numero"] == numero for item in data)
-        if existe:
-            return "Error: Ese Número ya existe. <a href='/'>Volver</a>"
-
+        if any(item["numero"] == numero for item in data):
+            return render_template("index.html", data=data, error_message="Error: Ese número ya existe.")
         files = request.files.getlist("imagenes")
         rutas_imagenes = [None, None, None]
         for i, file in enumerate(files[:3]):
@@ -230,7 +240,6 @@ def index():
                 filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
                 file.save(filepath)
                 rutas_imagenes[i] = os.path.join("imagenes_subidas", filename)
-
         nuevo_registro = {
             "numero": numero,
             "descripcion": descripcion,
@@ -240,48 +249,39 @@ def index():
         }
         data.append(nuevo_registro)
         escribir_datos_excel(data)
-
-        return redirect(url_for("index"))
+        return render_template("index.html", data=data, error_message="Registro agregado con éxito.")
     else:
         data = leer_datos_excel()
         return render_template("index.html", data=data)
 
 @app.route("/editar/<numero>", methods=["GET", "POST"])
 def editar(numero):
-    """Editar o eliminar un registro (fila) en el Excel. Requiere login."""
-    if "email" not in session:
+    if "usuario" not in session:
         return redirect(url_for("login"))
-
     if request.method == "GET":
         data = leer_datos_excel()
         registro = next((item for item in data if item["numero"] == str(numero)), None)
         if not registro:
-            return f"No existe el número {numero} en el Excel."
-
+            return f"No existe el número {numero}."
         return render_template("editar.html", registro=registro)
     else:
-        # POST
-        delete_flag = request.form.get("delete_record")
         data = leer_datos_excel()
-
         idx_encontrado = None
         for i, item in enumerate(data):
             if item["numero"] == str(numero):
                 idx_encontrado = i
                 break
-
         if idx_encontrado is None:
-            return f"No existe el número {numero} en el Excel."
-
+            return f"No existe el número {numero}."
+        delete_flag = request.form.get("delete_record")
         if delete_flag == "on":
             data.pop(idx_encontrado)
             escribir_datos_excel(data)
             return redirect(url_for("index"))
         else:
-            nueva_descripcion = request.form.get("descripcion")
+            nueva_descripcion = request.form.get("descripcion").strip()
             nuevo_peso = request.form.get("peso")
             nuevo_valor = request.form.get("valor")
-
             files = request.files.getlist("imagenes")
             rutas_imagenes = [None, None, None]
             for i, file in enumerate(files[:3]):
@@ -290,47 +290,33 @@ def editar(numero):
                     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
                     file.save(filepath)
                     rutas_imagenes[i] = os.path.join("imagenes_subidas", filename)
-
             remove_flags = [
                 request.form.get("remove_img1"),
                 request.form.get("remove_img2"),
                 request.form.get("remove_img3")
             ]
-
             data[idx_encontrado]["descripcion"] = nueva_descripcion
             data[idx_encontrado]["peso"] = nuevo_peso
             data[idx_encontrado]["valor"] = nuevo_valor
-
-            # Actualizar/borrar imágenes
             for i in range(3):
                 if rutas_imagenes[i]:
                     data[idx_encontrado]["imagenes"][i] = rutas_imagenes[i]
                 elif remove_flags[i] == "on":
                     data[idx_encontrado]["imagenes"][i] = None
-
             escribir_datos_excel(data)
             return redirect(url_for("index"))
 
 @app.route("/descargar-excel")
 def descargar_excel():
-    if "email" not in session:
+    if "usuario" not in session:
         return redirect(url_for("login"))
-
     if not os.path.exists(EXCEL_FILE):
         return "El Excel no existe aún."
-    return send_from_directory(
-        directory=app.root_path,
-        path=EXCEL_FILE,
-        as_attachment=True
-    )
+    return send_from_directory(app.root_path, EXCEL_FILE, as_attachment=True)
 
 @app.route("/imagenes_subidas/<path:filename>")
 def uploaded_images(filename):
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
-# -------------------------------------------
-#  MAIN
-# -------------------------------------------
 if __name__ == "__main__":
-    # En producción, no uses debug=True, y preferiblemente un servidor WSGI
     app.run(debug=True)

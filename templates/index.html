@@ -7,7 +7,19 @@
   </head>
   <body>
     <div class="container">
+      <!-- Si hay alguien logueado, muestra botón de Cerrar Sesión -->
+      {% if session.usuario %}
+      <div style="float: right">
+        <button type="button" onclick="window.location.href='/logout'">Cerrar Sesión ({{ session.usuario }})</button>
+      </div>
+      {% endif %}
+
       <h1>Catálogo Joyas (Popup de Imágenes)</h1>
+
+      <!-- Mensaje de error o info (opcional) -->
+      {% if error_message %}
+      <p style="color: red; font-weight: bold">{{ error_message }}</p>
+      {% endif %}
 
       <!-- Formulario para agregar nuevo registro -->
       <form method="POST" enctype="multipart/form-data">
@@ -51,6 +63,7 @@
             <td>{{ item.valor }}</td>
             <td>
               {% for ruta in item.imagenes %} {% if ruta %}
+              <!-- Miniatura clicable que abre el popup -->
               <img src="{{ '/' + ruta }}" alt="Preview" class="thumbnail" onclick="showModal('{{ '/' + ruta }}')" />
               <br /><br />
               {% endif %} {% endfor %}

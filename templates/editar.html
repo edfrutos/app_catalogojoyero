@@ -7,7 +7,19 @@
   </head>
   <body>
     <div class="container">
+      <!-- Si hay alguien logueado, muestra botón de Cerrar Sesión -->
+      {% if session.usuario %}
+      <div style="float: right">
+        <button type="button" onclick="window.location.href='/logout'">Cerrar Sesión ({{ session.usuario }})</button>
+      </div>
+      {% endif %}
+
       <h1>Editar el registro #{{ registro.numero }}</h1>
+
+      <!-- Mensaje de error o info (opcional) -->
+      {% if error_message %}
+      <p style="color: red; font-weight: bold">{{ error_message }}</p>
+      {% endif %}
 
       <form method="POST" enctype="multipart/form-data">
         <p>
