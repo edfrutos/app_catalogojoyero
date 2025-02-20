@@ -7,18 +7,29 @@
   </head>
   <body>
     <div class="container">
-      <!-- Botón de Cerrar Sesión (si hay usuario) -->
+      <!-- Botón de Cerrar Sesión -->
       {% if session.usuario %}
       <div style="float: right">
         <button type="button" onclick="window.location.href='/logout'">Cerrar Sesión ({{ session.usuario }})</button>
       </div>
       {% endif %}
+
       <h1>Catálogo Joyas (Popup de Imágenes)</h1>
+
+      <!-- Botón para acceder a las opciones de crear/importar tabla -->
+      <div style="margin-bottom: 1rem">
+        <button type="button" onclick="window.location.href='/tables'">Opciones de Tabla</button>
+      </div>
 
       <!-- Mensaje de error o info (opcional) -->
       {% if error_message %}
       <p style="color: red; font-weight: bold">{{ error_message }}</p>
       {% endif %}
+
+      <!-- Botón "Descargar Excel" colocado arriba de la tabla -->
+      <div style="margin-bottom: 1rem">
+        <a class="download-link" href="/descargar-excel">Descargar Excel (datos.xlsx)</a>
+      </div>
 
       <!-- Formulario para agregar nuevo registro -->
       <form method="POST" enctype="multipart/form-data">
@@ -62,6 +73,7 @@
             <td>{{ item.valor }}</td>
             <td>
               {% for ruta in item.imagenes %} {% if ruta %}
+              <!-- Miniatura clicable que abre el popup -->
               <img src="{{ '/' + ruta }}" alt="Preview" class="thumbnail" onclick="showModal('{{ '/' + ruta }}')" />
               <br /><br />
               {% endif %} {% endfor %}
@@ -73,15 +85,12 @@
           {% endfor %}
         </tbody>
       </table>
-
-      <br />
-      <a class="download-link" href="/descargar-excel">Descargar Excel (datos.xlsx)</a>
     </div>
 
     <!-- Botón flotante "Volver arriba" -->
     <button type="button" class="scroll-top-btn" onclick="scrollToTop()">Volver arriba</button>
 
-    <!-- Modal para imagen ampliada -->
+    <!-- Modal (popup) para imagen ampliada -->
     <div id="imageModal" class="modal">
       <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
@@ -90,25 +99,34 @@
     </div>
 
     <script>
+      // Función para mostrar el modal con la imagen
       function showModal(imageSrc) {
         var modal = document.getElementById('imageModal');
         var modalImg = document.getElementById('modalImage');
         modal.style.display = 'block';
         modalImg.src = imageSrc;
       }
+
+      // Función para cerrar el modal
       function closeModal() {
         var modal = document.getElementById('imageModal');
         modal.style.display = 'none';
       }
+
+      // Cerrar el modal si se hace clic fuera del contenedor
       window.onclick = function (event) {
         var modal = document.getElementById('imageModal');
         if (event.target === modal) {
           closeModal();
         }
       };
+
+      // Función para hacer scroll arriba suavemente
       function scrollToTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+
+      // Mostrar/ocultar el botón "Volver arriba" según el scroll
       window.addEventListener('scroll', function () {
         var scrollBtn = document.querySelector('.scroll-top-btn');
         if (window.scrollY > 300) {
