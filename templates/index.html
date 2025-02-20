@@ -10,7 +10,9 @@
       <!-- Botón de Cerrar Sesión -->
       {% if session.usuario %}
       <div style="float: right">
-        <button type="button" onclick="window.location.href='/logout'">Cerrar Sesión ({{ session.usuario }})</button>
+        <button type="button" class="cerrar_sesion" onclick="window.location.href='/logout'">
+          Cerrar Sesión ({{ session.usuario }})
+        </button>
       </div>
       {% endif %}
 

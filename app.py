@@ -2,10 +2,12 @@ import os
 import certifi
 import secrets
 from datetime import datetime, timedelta
+import tempfile
+import zipfile
 
 from flask import (
     Flask, request, render_template, redirect, url_for,
-    send_from_directory, session, flash
+    send_from_directory, session, flash, send_file
 )
 import openpyxl
 from openpyxl import load_workbook, Workbook
@@ -168,7 +170,6 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-# Redirección de /recover a /forgot-password
 @app.route("/recover")
 def recover_redirect():
     return redirect(url_for("forgot_password"))
@@ -286,7 +287,7 @@ def select_table(table_id):
     return redirect(url_for("catalog"))
 
 # -------------------------------------------
-# RUTAS DEL CATÁLOGO (Excel e imágenes)
+# RUTAS DEL CATÁLOGO (Excel e imágenes) para la tabla seleccionada
 # -------------------------------------------
 @app.route("/catalog", methods=["GET", "POST"])
 def catalog():
@@ -387,7 +388,31 @@ def descargar_excel():
     spreadsheet_path = get_current_spreadsheet()
     if not spreadsheet_path or not os.path.exists(spreadsheet_path):
         return "El Excel no existe aún."
-    return send_from_directory(os.path.dirname(spreadsheet_path), os.path.basename(spreadsheet_path), as_attachment=True)
+    
+    # Crear un archivo ZIP temporal que incluya el Excel y las imágenes referenciadas
+    import tempfile
+    temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+    with zipfile.ZipFile(temp_zip.name, "w") as zf:
+        # Agregar el archivo Excel
+        zf.write(spreadsheet_path, arcname=os.path.basename(spreadsheet_path))
+        # Leer los registros y recolectar las rutas de imagen únicas
+        data = leer_datos_excel(spreadsheet_path)
+        image_paths = set()
+        for row in data:
+            for ruta in row["imagenes"]:
+                if ruta:
+                    absolute_path = os.path.join(app.root_path, ruta)
+                    if os.path.exists(absolute_path):
+                        image_paths.add(absolute_path)
+        # Agregar las imágenes al ZIP, colocándolas en una subcarpeta "imagenes"
+        for img_path in image_paths:
+            arcname = os.path.join("imagenes", os.path.basename(img_path))
+            zf.write(img_path, arcname=arcname)
+    # Enviar el archivo ZIP
+    return send_from_directory(directory=os.path.dirname(temp_zip.name),
+                               path=os.path.basename(temp_zip.name),
+                               as_attachment=True,
+                               download_name="catalogo.zip")
 
 @app.route("/imagenes_subidas/<path:filename>")
 def uploaded_images(filename):
