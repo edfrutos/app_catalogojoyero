@@ -53,7 +53,12 @@ mail = Mail(app)
 # CONEXIÓN A MONGODB ATLAS
 # -------------------------------------------
 MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/"
-client = MongoClient(MONGO_URI, tlsCAFile=certifi.where(), tlsAllowInvalidCertificates=True)
+client = MongoClient(
+    MONGO_URI,
+    tlsCAFile=certifi.where(),
+    tlsAllowInvalidCertificates=True,
+    tlsAllowInvalidHostnames=True
+)
 db = client["app_catalogojoyero"]
 users_collection = db["users"]
 resets_collection = db["password_resets"]
