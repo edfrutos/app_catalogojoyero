@@ -55,16 +55,13 @@ mail = Mail(app)
 # -------------------------------------------
 # CONEXIÓN A MONGODB ATLAS
 # -------------------------------------------
+# Conexión a MongoDB Atlas
 MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
-# Nota: Para pruebas en Heroku, se permiten certificados y hostnames inválidos.
-# **No es recomendable en producción.**
 client = MongoClient(
     MONGO_URI,
     tls=True,
     tlsCAFile=certifi.where(),
-    tlsAllowInvalidCertificates=True,
-    tlsAllowInvalidHostnames=True,
     serverSelectionTimeoutMS=30000
 )
 

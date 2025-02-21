@@ -1,15 +1,19 @@
 app_catalogojoyero/
 ├── app.py
+├── Procfile
+├── requirements.txt
+├── .gitignore
+├── spreadsheets/          # Aquí se guardan las hojas de cálculo (archivos .xlsx)
+│   └── (archivos Excel)
+├── imagenes_subidas/       # Carpeta para las imágenes subidas
+│   └── (imágenes)
 ├── static/
-│   └── styles.css
-├── templates/
-│   ├── register.html
-│   ├── login.html
-│   ├── forgot_password.html
-│   ├── reset_password_form.html
-│   ├── tables.html             # Listado y creación de tablas
-│   ├── index.html              # Catálogo de la tabla seleccionada
-│   └── editar.html             # Edición de registros de la tabla seleccionada
-├── imagenes_subidas/           # Imágenes para el catálogo
-├── spreadsheets/               # Aquí se guardarán los archivos Excel de las tablas
-└── requirements.txt
+│   └── styles.css         # Archivo(s) de estilos CSS
+└── templates/             # Plantillas HTML
+    ├── register.html
+    ├── login.html
+    ├── forgot_password.html
+    ├── reset_password_form.html
+    ├── tables.html
+    ├── index.html       # Catálogo (se accede mediante /catalog)
+    └── editar.html
