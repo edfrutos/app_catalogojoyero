@@ -1,4 +1,4 @@
-certifi==2021.5.30
+certifi==2023.7.22
 Flask==2.3.3
 Flask-Mail==0.9.1
 PyMongo==4.3.3
