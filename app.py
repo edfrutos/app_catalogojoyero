@@ -1,5 +1,4 @@
-import os
-import certifi
+import os, certifi
 import secrets
 from datetime import datetime, timedelta
 import tempfile
@@ -16,6 +15,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from bson import ObjectId
+
+os.environ['SSL_CERT_FILE'] = certifi.where()
 
 # -------------------------------------------
 # CONFIGURACIÓN FLASK
@@ -52,13 +53,23 @@ mail = Mail(app)
 # -------------------------------------------
 # CONEXIÓN A MONGODB ATLAS
 # -------------------------------------------
-MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/"
-client = MongoClient(
-    MONGO_URI,
-    tlsCAFile=certifi.where(),
-    tlsAllowInvalidCertificates=True,
-    tlsAllowInvalidHostnames=True
-)
+
+
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+
+MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
+# Create a new client and connect to the server
+client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
+
+# Send a ping to confirm a successful connection
+try:
+    client.admin.command('ping')
+    print("Pingó su implementación. ¡Te conectaste con éxito a MongoDB!")
+except Exception as e:
+    print(e)
+
 db = client["app_catalogojoyero"]
 users_collection = db["users"]
 resets_collection = db["password_resets"]
