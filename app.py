@@ -1,4 +1,5 @@
-import os, certifi
+import os
+import certifi
 import secrets
 from datetime import datetime, timedelta
 import tempfile
@@ -16,6 +17,7 @@ from pymongo import MongoClient
 from flask_mail import Mail, Message
 from bson import ObjectId
 
+# Forzar que se use el bundle de certificados de certifi
 os.environ['SSL_CERT_FILE'] = certifi.where()
 
 # -------------------------------------------
@@ -53,14 +55,10 @@ mail = Mail(app)
 # -------------------------------------------
 # CONEXIÓN A MONGODB ATLAS
 # -------------------------------------------
-
-
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
-
 MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
-# Create a new client and connect to the server
+# Nota: Para pruebas en Heroku, se permiten certificados y hostnames inválidos.
+# **No es recomendable en producción.**
 client = MongoClient(
     MONGO_URI,
     tls=True,
@@ -70,12 +68,12 @@ client = MongoClient(
     serverSelectionTimeoutMS=30000
 )
 
-# Send a ping to confirm a successful connection
+# Puedes hacer un ping para comprobar la conexión (opcional)
 try:
     client.admin.command('ping')
-    print("Pingó su implementación. ¡Te conectaste con éxito a MongoDB!")
+    print("Conexión exitosa a MongoDB Atlas")
 except Exception as e:
-    print(e)
+    print("Error conectando a MongoDB:", e)
 
 db = client["app_catalogojoyero"]
 users_collection = db["users"]
