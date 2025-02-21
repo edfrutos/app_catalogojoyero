@@ -17,6 +17,10 @@ from pymongo import MongoClient
 from flask_mail import Mail, Message
 from bson import ObjectId
 
+# Configuración de logging
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 # Forzar el uso del bundle de certificados de certifi
 os.environ['SSL_CERT_FILE'] = certifi.where()
 
