@@ -56,21 +56,21 @@ mail = Mail(app)
 # CONEXIÓN A MONGODB ATLAS
 # -------------------------------------------
 # Conexión a MongoDB Atlas
+
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+
 MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
-client = MongoClient(
-    MONGO_URI,
-    tls=True,
-    tlsCAFile=certifi.where(),
-    serverSelectionTimeoutMS=30000
-)
+# Create a new client and connect to the server
+client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
 
-# Puedes hacer un ping para comprobar la conexión (opcional)
+# Send a ping to confirm a successful connection
 try:
     client.admin.command('ping')
-    print("Conexión exitosa a MongoDB Atlas")
+    print("Pinged your deployment. You successfully connected to MongoDB!")
 except Exception as e:
-    print("Error conectando a MongoDB:", e)
+    print(e)
 
 db = client["app_catalogojoyero"]
 users_collection = db["users"]
