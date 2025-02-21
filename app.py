@@ -1,6 +1,5 @@
 import os
 import certifi
-import ssl
 import secrets
 from datetime import datetime, timedelta
 import tempfile
@@ -54,7 +53,7 @@ mail = Mail(app)
 # CONEXIÓN A MONGODB ATLAS
 # -------------------------------------------
 MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/"
-client = MongoClient(MONGO_URI, tlsCAFile=certifi.where(), ssl_version=ssl.PROTOCOL_TLSv1_2)
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client["app_catalogojoyero"]
 users_collection = db["users"]
 resets_collection = db["password_resets"]
@@ -391,12 +390,11 @@ def descargar_excel():
         return "El Excel no existe aún."
     
     # Crear un archivo ZIP temporal que incluya el Excel y las imágenes referenciadas
-    import tempfile
     temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
     with zipfile.ZipFile(temp_zip.name, "w") as zf:
         # Agregar el archivo Excel
         zf.write(spreadsheet_path, arcname=os.path.basename(spreadsheet_path))
-        # Leer los registros y recolectar las rutas de imagen únicas
+        # Recopilar rutas únicas de imágenes
         data = leer_datos_excel(spreadsheet_path)
         image_paths = set()
         for row in data:
@@ -405,11 +403,10 @@ def descargar_excel():
                     absolute_path = os.path.join(app.root_path, ruta)
                     if os.path.exists(absolute_path):
                         image_paths.add(absolute_path)
-        # Agregar las imágenes al ZIP, colocándolas en una subcarpeta "imagenes"
+        # Agregar las imágenes al ZIP, en la subcarpeta "imagenes"
         for img_path in image_paths:
             arcname = os.path.join("imagenes", os.path.basename(img_path))
             zf.write(img_path, arcname=arcname)
-    # Enviar el archivo ZIP
     return send_from_directory(directory=os.path.dirname(temp_zip.name),
                                path=os.path.basename(temp_zip.name),
                                as_attachment=True,
