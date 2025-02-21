@@ -1,5 +1,6 @@
 import os
 import certifi
+import ssl
 import secrets
 from datetime import datetime, timedelta
 import tempfile
@@ -53,7 +54,7 @@ mail = Mail(app)
 # CONEXIÓN A MONGODB ATLAS
 # -------------------------------------------
 MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/"
-client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where(), ssl_version=ssl.PROTOCOL_TLSv1_2)
 db = client["app_catalogojoyero"]
 users_collection = db["users"]
 resets_collection = db["password_resets"]
