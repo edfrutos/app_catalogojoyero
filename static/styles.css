@@ -1,4 +1,4 @@
-/* Importar Google Fonts (opcional) */
+/* Importar Google Fonts (Roboto) */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
 /* --- RESET BÁSICO --- */
@@ -16,9 +16,9 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    padding: 20px;
 }
 
-/* Contenedor principal, centrado y con fondo blanco semi-transparente */
 .container {
     width: 100%;
     max-width: 1200px;
@@ -72,41 +72,102 @@ form input:focus {
     outline: none;
 }
 
-form button[type="submit"],
-form button.cancel-btn {
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 500;
+/* --- BOTONES --- */
+/* Botón general (usado para "Acceder", "Agregar", etc.) */
+.btn {
+    display: inline-block;
+    background-color: #007bff;
+    color: #fff;
     border: none;
+    padding: 0.75rem 1.5rem;
+    margin: 0.2rem;
     border-radius: 4px;
     cursor: pointer;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
     transition: background 0.2s ease;
 }
 
-form button[type="submit"] {
-    background-color: #007bff;
-    color: #fff;
-}
-
-form button[type="submit"]:hover {
+.btn:hover {
     background-color: #0056b3;
 }
 
-form button.cancel-btn {
-    background-color: #6c757d;
+/* Botón secundario para acciones como "Cerrar Sesión (usuario)" y "Opciones de tabla" */
+.btn-secondary {
+    display: inline-block;
+    background-color: #017bfe;
     color: #fff;
-}
-
-form button.cancel-btn:hover {
-    background-color: #5a6268;
-}
-
-/* --- Botón "ojo" para contraseñas --- */
-.toggle-password {
+    border: none;
+    padding: 0.75rem 1.5rem;
+    margin: 0.2rem;
+    border-radius: 4px;
     cursor: pointer;
-    margin-left: -30px;
-    position: relative;
-    z-index: 2;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #0156b3;
+}
+
+/* Botón de peligro, para eliminar (en rojo) */
+.btn-danger {
+    display: inline-block;
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    margin: 0.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background 0.2s ease;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+/* --- ENLACES --- */
+.download-link {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    background-color: #28a745;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background 0.2s ease;
+}
+
+.download-link:hover {
+    background-color: #218838;
+}
+
+/* --- BOTÓN FLOTANTE "VOLVER ARRIBA" --- */
+.scroll-top-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: none;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.scroll-top-btn:hover {
+    background-color: #0056b3;
 }
 
 /* --- TABLAS --- */
@@ -133,7 +194,7 @@ th {
     color: #333;
 }
 
-/* Miniatura para imágenes en tabla */
+/* --- MINIATURAS --- */
 .thumbnail {
     max-width: 80px;
     cursor: pointer;
@@ -146,41 +207,12 @@ th {
     transform: scale(1.05);
 }
 
-/* --- BOTÓN DESCARGAR EXCEL --- */
-.download-link {
-    display: inline-block;
-    margin-top: 1rem;
-    padding: 0.75rem 1.5rem;
-    background-color: #28a745;
-    color: #fff;
-    text-decoration: none;
-    border-radius: 4px;
-    font-weight: 500;
-    transition: background 0.2s ease;
-}
-
-.download-link:hover {
-    background-color: #218838;
-}
-
-/* --- BOTÓN FLOTANTE 'VOLVER ARRIBA' --- */
-.scroll-top-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 4px;
+/* --- BOTÓN "OJO" PARA CONTRASEÑAS --- */
+.toggle-password {
     cursor: pointer;
-    display: none;
-    font-size: 1rem;
-    font-weight: 500;
-}
-
-.scroll-top-btn:hover {
-    background-color: #0056b3;
+    margin-left: -30px;
+    position: relative;
+    z-index: 2;
 }
 
 /* --- MODAL (POPUP) --- */

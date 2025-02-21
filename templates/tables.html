@@ -8,8 +8,10 @@
   <body>
     <div class="container">
       {% if session.usuario %}
-      <div style="float: right">
-        <button type="button" onclick="window.location.href='/logout'">Cerrar Sesión ({{ session.usuario }})</button>
+      <div class="top-right">
+        <button type="button" class="btn btn-logout" onclick="window.location.href='/logout'">
+          Cerrar Sesión ({{ session.usuario }})
+        </button>
       </div>
       {% endif %}
       <h1>Mis Tablas de Catálogo</h1>
@@ -21,11 +23,21 @@
           <input type="text" id="table_name" name="table_name" required />
         </p>
         <p>
+          <label for="table_headers">Encabezados de columnas (separados por coma):</label>
+          <input
+            type="text"
+            id="table_headers"
+            name="table_headers"
+            placeholder="Ej.: Número, Descripción, Peso, Valor, Imagen1, Imagen2, Imagen3"
+          />
+          <small>Si no se ingresa nada se usarán los valores por defecto.</small>
+        </p>
+        <p>
           <label for="import_table">Importar tabla (archivo Excel):</label>
           <input type="file" id="import_table" name="import_table" accept=".xlsx" />
           <small>(Si no subes archivo, se creará una tabla vacía)</small>
         </p>
-        <button type="submit">Crear/Importar Tabla</button>
+        <button type="submit" class="btn">Crear/Importar Tabla</button>
       </form>
 
       <hr />
@@ -35,7 +47,17 @@
         {% for table in tables %}
         <li>
           <strong>{{ table.name }}</strong> - Creada el {{ table.created_at.strftime("%Y-%m-%d %H:%M") }}
-          <a href="/select_table/{{ table._id }}">Seleccionar</a>
+          <a href="/select_table/{{ table._id }}" class="btn">Seleccionar</a>
+          <!-- Botón para eliminar la tabla -->
+          <form action="/delete_table/{{ table._id }}" method="POST" style="display: inline">
+            <button
+              type="submit"
+              class="btn btn-danger"
+              onclick="return confirm('¿Estás seguro de eliminar esta tabla?');"
+            >
+              Eliminar
+            </button>
+          </form>
         </li>
         {% endfor %}
       </ul>
@@ -44,7 +66,7 @@
       {% endif %}
 
       <br />
-      <a href="/logout">Cerrar Sesión</a>
+      <a href="/logout" class="btn btn-logout">Cerrar Sesión</a>
     </div>
   </body>
 </html>

@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <title>Iniciar Sesión</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
     <style>
       .toggle-password {
         cursor: pointer;
@@ -19,7 +20,7 @@
       {% if session.usuario %}
       <p>
         Ya estás logueado como {{ session.usuario }}.
-        <button type="button" onclick="window.location.href='/logout'">Cerrar Sesión</button>
+        <button type="button" onclick="window.location.href='/logout'" class="btn-secondary">Cerrar Sesión</button>
       </p>
       {% else %}
       <form method="POST">
@@ -32,7 +33,7 @@
           <input type="password" id="password" name="password" required />
           <span class="toggle-password" onclick="togglePassword('password')">&#128065;</span>
         </p>
-        <button type="submit">Acceder</button>
+        <button type="submit" class="btn">Acceder</button>
         <br /><br />
         <a href="/forgot-password">¿Olvidaste tu contraseña?</a><br />
         <a href="/register">¿No tienes cuenta? Regístrate</a>

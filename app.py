@@ -17,7 +17,7 @@ from pymongo import MongoClient
 from flask_mail import Mail, Message
 from bson import ObjectId
 
-# Forzar que se use el bundle de certificados de certifi
+# Forzar el uso del bundle de certificados de certifi
 os.environ['SSL_CERT_FILE'] = certifi.where()
 
 # -------------------------------------------
@@ -55,22 +55,20 @@ mail = Mail(app)
 # -------------------------------------------
 # CONEXIÓN A MONGODB ATLAS
 # -------------------------------------------
-# Conexión a MongoDB Atlas
-
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
-
 MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-
-# Create a new client and connect to the server
-client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
-
-# Send a ping to confirm a successful connection
+client = MongoClient(
+    MONGO_URI,
+    tls=True,
+    tlsCAFile=certifi.where(),
+    tlsAllowInvalidCertificates=True,  # Solo para pruebas; en producción, solucionar la validación TLS
+    tlsAllowInvalidHostnames=True,
+    serverSelectionTimeoutMS=30000
+)
 try:
     client.admin.command('ping')
-    print("Pinged your deployment. You successfully connected to MongoDB!")
+    print("Conexión exitosa a MongoDB Atlas")
 except Exception as e:
-    print(e)
+    print("Error conectando a MongoDB:", e)
 
 db = client["app_catalogojoyero"]
 users_collection = db["users"]
@@ -114,13 +112,13 @@ def escribir_datos_excel(data, filename):
     wb = Workbook()
     hoja = wb.active
     hoja.title = "Datos"
-    hoja["A1"] = "Número"
-    hoja["B1"] = "Descripción"
-    hoja["C1"] = "Peso"
-    hoja["D1"] = "Valor"
-    hoja["E1"] = "Imagen1 (Ruta)"
-    hoja["F1"] = "Imagen2 (Ruta)"
-    hoja["G1"] = "Imagen3 (Ruta)"
+    # Asumimos que el usuario definió encabezados al crear la tabla,
+    # por lo que no forzamos encabezados fijos aquí.
+    # Sin embargo, si no existen, se pueden usar los siguientes valores:
+    default_headers = ["Número", "Descripción", "Peso", "Valor", "Imagen1 (Ruta)", "Imagen2 (Ruta)", "Imagen3 (Ruta)"]
+    # Escribir los encabezados en la primera fila
+    for col_idx, header in enumerate(default_headers, start=1):
+        hoja.cell(row=1, column=col_idx, value=header)
     fila = 2
     for item in data:
         hoja.cell(row=fila, column=1, value=item["numero"])
@@ -263,6 +261,13 @@ def tables():
     if request.method == "POST":
         table_name = request.form.get("table_name").strip()
         import_file = request.files.get("import_table")
+        # Se leen encabezados si se proporcionaron (aunque para la edición de filas se usará el orden secuencial)
+        # Aquí podríamos usarlos para crear la primera fila del Excel
+        headers_str = request.form.get("table_headers", "").strip()
+        if headers_str:
+            headers = [h.strip() for h in headers_str.split(",")]
+        else:
+            headers = ["Número", "Descripción", "Peso", "Valor", "Imagen1 (Ruta)", "Imagen2 (Ruta)", "Imagen3 (Ruta)"]
         if import_file and import_file.filename != "":
             filename = secure_filename(import_file.filename)
             filepath = os.path.join(SPREADSHEET_FOLDER, filename)
@@ -274,13 +279,9 @@ def tables():
             wb = Workbook()
             hoja = wb.active
             hoja.title = "Datos"
-            hoja["A1"] = "Número"
-            hoja["B1"] = "Descripción"
-            hoja["C1"] = "Peso"
-            hoja["D1"] = "Valor"
-            hoja["E1"] = "Imagen1 (Ruta)"
-            hoja["F1"] = "Imagen2 (Ruta)"
-            hoja["G1"] = "Imagen3 (Ruta)"
+            # Escribir los encabezados definidos por el usuario
+            for col_idx, header in enumerate(headers, start=1):
+                hoja.cell(row=1, column=col_idx, value=header)
             wb.save(filepath)
             wb.close()
         spreadsheets_collection.insert_one({
@@ -320,6 +321,7 @@ def catalog():
         descripcion = request.form.get("descripcion").strip()
         peso = request.form.get("peso")
         valor = request.form.get("valor")
+        # Si se ingresa un número ya existente, se rechaza la operación
         if any(item["numero"] == numero for item in data):
             return render_template("index.html", data=data, error_message="Error: Ese número ya existe.")
         files = request.files.getlist("imagenes")
@@ -331,13 +333,24 @@ def catalog():
                 file.save(fpath)
                 rutas_imagenes[i] = os.path.join("imagenes_subidas", fname)
         nuevo_registro = {
-            "numero": numero,
+            "numero": numero,  # Valor temporal, se reordenará
             "descripcion": descripcion,
             "peso": peso,
             "valor": valor,
             "imagenes": rutas_imagenes
         }
-        data.append(nuevo_registro)
+        try:
+            new_index = int(numero)
+        except:
+            new_index = len(data) + 1
+        # Insertar el nuevo registro en la posición indicada
+        if new_index > len(data) + 1:
+            data.append(nuevo_registro)
+        else:
+            data.insert(new_index - 1, nuevo_registro)
+        # Reasignar números secuenciales a todas las filas
+        for i, row in enumerate(data, start=1):
+            row["numero"] = str(i)
         escribir_datos_excel(data, spreadsheet_path)
         return render_template("index.html", data=data, error_message="Registro agregado con éxito.")
     else:
@@ -369,6 +382,9 @@ def editar(numero):
         delete_flag = request.form.get("delete_record")
         if delete_flag == "on":
             data.pop(idx_encontrado)
+            # Reasignar números tras la eliminación
+            for i, row in enumerate(data, start=1):
+                row["numero"] = str(i)
             escribir_datos_excel(data, spreadsheet_path)
             return redirect(url_for("catalog"))
         else:

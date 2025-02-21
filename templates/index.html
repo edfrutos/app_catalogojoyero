@@ -4,13 +4,14 @@
     <meta charset="UTF-8" />
     <title>Catálogo Joyas (Popup de Imágenes)</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
   </head>
   <body>
     <div class="container">
       <!-- Botón de Cerrar Sesión -->
       {% if session.usuario %}
       <div style="float: right">
-        <button type="button" class="cerrar_sesion" onclick="window.location.href='/logout'">
+        <button type="button" class="btn-secondary" onclick="window.location.href='/logout'">
           Cerrar Sesión ({{ session.usuario }})
         </button>
       </div>
@@ -20,7 +21,7 @@
 
       <!-- Botón para acceder a las opciones de crear/importar tabla -->
       <div style="margin-bottom: 1rem">
-        <button type="button" onclick="window.location.href='/tables'">Opciones de Tabla</button>
+        <button type="button" onclick="window.location.href='/tables'" class="btn-secondary">Opciones de Tabla</button>
       </div>
 
       <!-- Mensaje de error o info (opcional) -->
@@ -51,7 +52,7 @@
         <label>Imágenes (hasta 3):</label>
         <input type="file" name="imagenes" multiple accept="image/*" />
 
-        <button type="submit">Agregar</button>
+        <button type="submit" class="btn">Agregar</button>
       </form>
 
       <!-- Tabla con los registros -->
