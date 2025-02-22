@@ -18,8 +18,8 @@ from flask_mail import Mail, Message
 from bson import ObjectId
 
 # Configuración de logging
-import logging
-logging.basicConfig(level=logging.DEBUG)
+# import logging
+# logging.basicConfig(level=logging.DEBUG)
 
 # Forzar el uso del bundle de certificados de certifi
 os.environ['SSL_CERT_FILE'] = certifi.where()
@@ -28,7 +28,7 @@ os.environ['SSL_CERT_FILE'] = certifi.where()
 # CONFIGURACIÓN FLASK
 # -------------------------------------------
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "CAMBIA_ESTA_CLAVE_EN_PRODUCCION")
+app.secret_key = os.environ.get("MBZl1W45ute3UEMCXPlL9JzcR7XsTeUi-4ZI6KCd79M", "CAMBIA_ESTA_CLAVE_EN_PRODUCCION")
 
 # Carpeta para imágenes del catálogo
 app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "imagenes_subidas")
@@ -63,7 +63,7 @@ mail = Mail(app)
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
-MONGO_URI = "mongodb+srv://edfrutos:<db_password>@cluster0.pmokh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 # Create a new client and connect to the server
 client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
