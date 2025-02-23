@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>Iniciar Sesión</title>
+    <title>Iniciar Sesión - Catalogo Joyero</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
     <style>
@@ -16,28 +16,55 @@
   </head>
   <body>
     <div class="container">
-      <h1>Iniciar Sesión</h1>
+      <header>
+        <h1>Iniciar Sesión</h1>
+      </header>
       {% if session.usuario %}
       <p>
         Ya estás logueado como {{ session.usuario }}.
         <button type="button" onclick="window.location.href='/logout'" class="btn-secondary">Cerrar Sesión</button>
       </p>
       {% else %}
-      <form method="POST">
-        <p>
-          <label for="login_input">Nombre de Usuario o Email:</label>
-          <input type="text" id="login_input" name="login_input" required />
-        </p>
-        <p>
-          <label for="password">Contraseña:</label>
-          <input type="password" id="password" name="password" required />
-          <span class="toggle-password" onclick="togglePassword('password')">&#128065;</span>
-        </p>
-        <button type="submit" class="btn">Acceder</button>
-        <br /><br />
-        <a href="/forgot-password">¿Olvidaste tu contraseña?</a><br />
-        <a href="/register">¿No tienes cuenta? Regístrate</a>
-      </form>
+      <main>
+        <section id="login-form">
+          <form method="POST">
+            <p>
+              <label for="login_input">Nombre de Usuario o Email:</label>
+              <input
+                type="text"
+                id="login_input"
+                name="login_input"
+                placeholder="Introduce tu nombre de usuario o email"
+                required
+              />
+            </p>
+            <p>
+              <label for="password">Contraseña:</label>
+              <input type="password" id="password" name="password" placeholder="Introduce tu contraseña" required />
+              <span class="toggle-password" onclick="togglePassword('password')">&#128065;</span>
+            </p>
+            <button type="submit" class="btn">Acceder</button>
+            <br /><br />
+            <a href="/forgot-password">¿Olvidaste tu contraseña?</a><br />
+            <a href="/register">¿No tienes cuenta? Regístrate</a>
+          </form>
+        </section>
+        <section id="instrucciones">
+          <h2>Instrucciones para Iniciar Sesión</h2>
+          <p>Sigue estos pasos para acceder a tu cuenta:</p>
+          <ul>
+            <li>
+              <strong>Nombre de Usuario o Email:</strong> Introduce el nombre de usuario registrado o el correo
+              electrónico asociado a tu cuenta. Asegúrate de no incluir espacios adicionales.
+            </li>
+            <li>
+              <strong>Contraseña:</strong> Escribe tu contraseña. Si no la recuerdas, utiliza el enlace "¿Olvidaste tu
+              contraseña?" para recuperarla.
+            </li>
+            <li>Una vez completados ambos campos, haz clic en "Acceder" para iniciar sesión.</li>
+          </ul>
+        </section>
+      </main>
       {% endif %}
     </div>
     <script>

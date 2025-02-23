@@ -19,6 +19,18 @@ body {
     padding: 20px;
 }
 
+header,
+footer {
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 1em;
+}
+
+main {
+    padding: 2em;
+}
+
 .container {
     width: 100%;
     max-width: 1200px;
@@ -52,6 +64,10 @@ form label {
     font-weight: 500;
     margin-bottom: 0.25rem;
     color: #555;
+}
+
+form.form-action {
+    padding: .2rem;
 }
 
 form input[type="text"],
@@ -115,7 +131,7 @@ form input:focus {
 
 /* Botón de peligro, para eliminar (en rojo) */
 .btn-danger {
-    display: inline-block;
+    display: flex;
     background-color: #dc3545;
     color: #fff;
     border: none;
@@ -126,16 +142,27 @@ form input:focus {
     text-decoration: none;
     font-size: 1rem;
     font-weight: 500;
-    transition: background 0.2s ease;
+    transition: background 0.2sease;
+    width: 100%;
+    justify-content: center;
 }
 
 .btn-danger:hover {
     background-color: #c82333;
 }
 
+button.btn-secondary.mt-1 {
+    margin: 1.3rem;
+}
+
+button.btn-secondary.mt-2 {
+    margin-top: 2rem;
+    width: 100%;
+}
+
 /* --- ENLACES --- */
 .download-link {
-    display: inline-block;
+    display: flex;
     margin-top: 1rem;
     padding: 0.75rem 1.5rem;
     background-color: #28a745;
@@ -143,7 +170,10 @@ form input:focus {
     text-decoration: none;
     border-radius: 4px;
     font-weight: 500;
-    transition: background 0.2s ease;
+    transition: background 0.2sease;
+    width: 50%;
+    margin: 0 auto;
+    justify-content: center;
 }
 
 .download-link:hover {
@@ -257,4 +287,26 @@ th {
 
 .modal-content .close:hover {
     color: #000;
+}
+
+/* Estilos para las secciones de ayuda e instrucciones */
+#instrucciones {
+    background-color: #e2e2e2;
+    padding: 1em;
+    margin-top: 2em;
+    border-left: 5px solid #333;
+}
+
+/* Otros estilos opcionales para enlaces y párrafos */
+a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+p {
+    line-height: 1.5;
 }

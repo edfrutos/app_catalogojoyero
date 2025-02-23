@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bienvenido a Catalogo de Tablas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+  </head>
+  <body>
+    <header>
+      <h1>Bienvenido a Catalogo de Tablas</h1>
+    </header>
+    <main>
+      <section id="manual">
+        <h2>Manual de Uso</h2>
+        <p>
+          Esta aplicación te permite gestionar tu catálogo de joyería de forma sencilla. Sigue estos pasos para
+          utilizarla correctamente:
+        </p>
+        <ol>
+          <li>
+            <strong>Registro e Inicio de Sesión:</strong>
+            <ul>
+              <li>
+                Accede a la página de <a href="{{ url_for('login') }}">Inicio de Sesión</a> para ingresar tus
+                credenciales. Si aún no tienes cuenta, regístrate en la sección
+                <a href="{{ url_for('register') }}">Registro</a>.
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>Visualización del Catálogo:</strong>
+            <ul>
+              <li>
+                Una vez autenticado, podrás visualizar el listado de productos y sus detalles (nombre, descripción,
+                precio e imagen).
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>Agregar un Nuevo Producto:</strong>
+            <ul>
+              <li>Utiliza la sección "Agregar Producto" para dar de alta un nuevo artículo.</li>
+              <ul>
+                <li><em>Nombre:</em> Introduce el nombre del producto de forma clara y concisa.</li>
+                <li>
+                  <em>Descripción:</em> Proporciona detalles completos sobre el producto (materiales, características,
+                  etc.).
+                </li>
+                <li><em>Precio:</em> Escribe el precio en formato numérico (por ejemplo, 99.99).</li>
+                <li><em>Imagen:</em> Selecciona un archivo de imagen en formato JPEG o PNG.</li>
+              </ul>
+            </ul>
+          </li>
+          <li>
+            <strong>Editar o Eliminar Productos:</strong>
+            <ul>
+              <li>
+                Desde la página de detalles del producto, podrás editar la información o eliminar el artículo según lo
+                necesites.
+              </li>
+              <li>
+                Los formularios de edición mostrarán los campos pre-llenados para que actualices únicamente lo que
+                requieras.
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>Consejos Generales:</strong>
+            <ul>
+              <li>Asegúrate de completar todos los campos obligatorios antes de enviar cada formulario.</li>
+              <li>
+                Si aparece un mensaje de error, revisa las instrucciones específicas que se muestran en la página.
+              </li>
+            </ul>
+          </li>
+        </ol>
+      </section>
+      <section id="ayuda">
+        <h2>Ayuda en Cada Página</h2>
+        <p>
+          En cada formulario encontrarás instrucciones y <em>placeholders</em> que indican el formato y el contenido
+          esperado. Por ejemplo:
+        </p>
+        <ul>
+          <li>
+            En el formulario de inicio de sesión, el campo "Nombre de Usuario" tendrá un placeholder como "Introduce tu
+            nombre de usuario".
+          </li>
+          <li>En el registro, se te indicará que el correo debe ser válido y que la contraseña debe ser segura.</li>
+          <li>
+            En el alta de productos, cada campo cuenta con una breve descripción sobre qué información debes introducir.
+          </li>
+        </ul>
+      </section>
+    </main>
+    <footer>
+      <p>&copy; 2025 Catalogo Joyero. Todos los derechos reservados.</p>
+    </footer>
+  </body>
+</html>

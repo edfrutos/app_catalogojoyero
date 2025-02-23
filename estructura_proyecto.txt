@@ -11,6 +11,7 @@ app_catalogojoyero/
 │   └── styles.css         # Archivo(s) de estilos CSS
 └── templates/             # Plantillas HTML
     ├── register.html
+    |── welcome.html
     ├── login.html
     ├── forgot_password.html
     ├── reset_password_form.html

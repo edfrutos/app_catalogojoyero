@@ -17,10 +17,6 @@ from pymongo import MongoClient
 from flask_mail import Mail, Message
 from bson import ObjectId
 
-# Configuración de logging
-# import logging
-# logging.basicConfig(level=logging.DEBUG)
-
 # Forzar el uso del bundle de certificados de certifi
 os.environ['SSL_CERT_FILE'] = certifi.where()
 
@@ -59,13 +55,11 @@ mail = Mail(app)
 # -------------------------------------------
 # CONEXIÓN A MONGODB ATLAS
 # -------------------------------------------
-
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
 MONGO_URI = "mongodb+srv://edfrutos:rYjwUC6pUNrLtbaI@cluster0.pmokh.mongodb.net/?retryWrites=true&w=majority"
 
-# Create a new client and connect to the server
 client = MongoClient(
     MONGO_URI,
     tls=True,
@@ -73,7 +67,6 @@ client = MongoClient(
     server_api=ServerApi('1')
 )
 
-# Send a ping to confirm a successful connection
 try:
     client.admin.command('ping')
     print("Pinged your deployment. You successfully connected to MongoDB!")
@@ -91,58 +84,47 @@ spreadsheets_collection = db["spreadsheets"]
 def leer_datos_excel(filename):
     if not os.path.exists(filename):
         return []
-    wb = load_workbook(filename, read_only=False)
+
+    wb = load_workbook(filename, read_only=True)
     hoja = wb.active
     data = []
-    for row in hoja.iter_rows(min_row=2, max_col=7):
-        numero = row[0].value
-        if numero is None:
-            continue
-        numero = str(numero)
-        descripcion = row[1].value
-        peso = row[2].value
-        valor = row[3].value
-        imagenes = []
-        for celda in row[4:7]:
-            if celda and celda.hyperlink:
-                imagenes.append(celda.hyperlink.target)
-            else:
-                imagenes.append(None)
-        data.append({
-            "numero": numero,
-            "descripcion": descripcion,
-            "peso": peso,
-            "valor": valor,
-            "imagenes": imagenes
-        })
+
+    headers = [cell.value for cell in hoja[1]]
+    for row in hoja.iter_rows(min_row=2, values_only=True):
+        registro = {headers[i]: row[i] for i in range(len(headers))}
+        data.append(registro)
+
     wb.close()
     return data
+
 
 def escribir_datos_excel(data, filename):
     wb = Workbook()
     hoja = wb.active
     hoja.title = "Datos"
-    # Asumimos que el usuario definió encabezados al crear la tabla,
-    # por lo que no forzamos encabezados fijos aquí.
-    # Sin embargo, si no existen, se pueden usar los siguientes valores:
-    default_headers = ["Número", "Descripción", "Peso", "Valor", "Imagen1 (Ruta)", "Imagen2 (Ruta)", "Imagen3 (Ruta)"]
-    # Escribir los encabezados en la primera fila
-    for col_idx, header in enumerate(default_headers, start=1):
+
+    # Obtener encabezados desde la sesión
+    headers = session.get("selected_headers", ["Número", "Descripción", "Peso", "Valor", "Imagen1", "Imagen2", "Imagen3"])
+
+    # Asegurar que "Número" siempre esté presente
+    if "Número" not in headers:
+        headers.insert(0, "Número")
+
+    # Escribir los encabezados en la hoja de cálculo
+    for col_idx, header in enumerate(headers, start=1):
         hoja.cell(row=1, column=col_idx, value=header)
-    fila = 2
-    for item in data:
-        hoja.cell(row=fila, column=1, value=item["numero"])
-        hoja.cell(row=fila, column=2, value=item["descripcion"])
-        hoja.cell(row=fila, column=3, value=item["peso"])
-        hoja.cell(row=fila, column=4, value=item["valor"])
-        for idx, col in enumerate([5, 6, 7]):
-            ruta = item["imagenes"][idx]
-            if ruta:
-                celda = hoja.cell(row=fila, column=col)
-                celda.value = f"Ver Imagen {idx+1}"
-                celda.hyperlink = ruta
-                celda.style = "Hyperlink"
-        fila += 1
+
+    # Escribir los datos en la hoja
+    for fila, item in enumerate(data, start=2):
+        for col_idx, header in enumerate(headers, start=1):
+            valor = item.get(header, "")
+
+            # Si el valor es una lista (imágenes), convertir a string
+            if isinstance(valor, list):
+                valor = ", ".join([v for v in valor if v])
+
+            hoja.cell(row=fila, column=col_idx, value=valor)
+
     wb.save(filename)
     wb.close()
 
@@ -151,6 +133,16 @@ def get_current_spreadsheet():
     if not filename:
         return None
     return os.path.join(SPREADSHEET_FOLDER, filename)
+
+# -------------------------------------------
+# NUEVA RUTA: PÁGINA DE BIENVENIDA (MANUAL DE USO)
+# -------------------------------------------
+@app.route("/welcome")
+def welcome():
+    # Si el usuario no ha iniciado sesión, redirige al login
+    if "usuario" not in session:
+        return redirect(url_for("login"))
+    return render_template("welcome.html")
 
 # -------------------------------------------
 # RUTAS DE AUTENTICACIÓN
@@ -257,7 +249,8 @@ def reset_password():
 @app.route("/")
 def home():
     if "usuario" not in session:
-        return redirect(url_for("login"))
+        return render_template("welcome.html")  # Mostrar página de bienvenida si no hay sesión iniciada
+
     if "selected_table" in session:
         return redirect(url_for("catalog"))
     else:
@@ -269,71 +262,70 @@ def tables():
         return redirect(url_for("login"))
     owner = session["usuario"]
     if request.method == "POST":
-        table_name = request.form.get("table_name").strip()
-        import_file = request.files.get("import_table")
-        # Se leen encabezados si se proporcionaron (aunque para la edición de filas se usará el orden secuencial)
-        # Aquí podríamos usarlos para crear la primera fila del Excel
+        table_name = request.form.get("table_name", "").strip()
         headers_str = request.form.get("table_headers", "").strip()
-        if headers_str:
-            headers = [h.strip() for h in headers_str.split(",")]
-        else:
-            headers = ["Número", "Descripción", "Peso", "Valor", "Imagen1 (Ruta)", "Imagen2 (Ruta)", "Imagen3 (Ruta)"]
-        if import_file and import_file.filename != "":
-            filename = secure_filename(import_file.filename)
-            filepath = os.path.join(SPREADSHEET_FOLDER, filename)
-            import_file.save(filepath)
-        else:
-            file_id = secrets.token_hex(8)
-            filename = f"table_{file_id}.xlsx"
-            filepath = os.path.join(SPREADSHEET_FOLDER, filename)
-            wb = Workbook()
-            hoja = wb.active
-            hoja.title = "Datos"
-            # Escribir los encabezados definidos por el usuario
-            for col_idx, header in enumerate(headers, start=1):
-                hoja.cell(row=1, column=col_idx, value=header)
-            wb.save(filepath)
-            wb.close()
-        spreadsheets_collection.insert_one({
-            "owner": owner,
-            "name": table_name,
-            "filename": filename,
-            "created_at": datetime.utcnow()
-        })
+        headers = [h.strip() for h in headers_str.split(",")] if headers_str else ["Número", "Descripción", "Peso", "Valor", "Imagen1", "Imagen2", "Imagen3"]
+        filename = f"table_{secrets.token_hex(8)}.xlsx"
+        filepath = os.path.join(SPREADSHEET_FOLDER, filename)
+        wb = Workbook()
+        hoja = wb.active
+        hoja.append(headers)
+        wb.save(filepath)
+        spreadsheets_collection.insert_one({"owner": owner, "name": table_name, "filename": filename, "headers": headers, "created_at": datetime.utcnow()})
         return redirect(url_for("tables"))
-    else:
-        tables = list(spreadsheets_collection.find({"owner": session["usuario"]}))
-        return render_template("tables.html", tables=tables)
+    tables = list(spreadsheets_collection.find({"owner": session["usuario"]}))
+    return render_template("tables.html", tables=tables)
 
 @app.route("/select_table/<table_id>")
 def select_table(table_id):
     if "usuario" not in session:
         return redirect(url_for("login"))
+
     table = spreadsheets_collection.find_one({"_id": ObjectId(table_id)})
+
     if not table:
-        return "Tabla no encontrada."
+        flash("Tabla no encontrada.", "error")
+        return redirect(url_for("tables"))
+
     session["selected_table"] = table["filename"]
+
+    # Si la tabla tiene encabezados personalizados, usarlos. Si no, usar un valor por defecto.
+    session["selected_headers"] = table.get("headers", ["Número", "Descripción", "Peso", "Valor", "Imagen1", "Imagen2", "Imagen3"])
+
     return redirect(url_for("catalog"))
 
 # -------------------------------------------
 # RUTAS DEL CATÁLOGO (Excel e imágenes) para la tabla seleccionada
 # -------------------------------------------
+
 @app.route("/catalog", methods=["GET", "POST"])
 def catalog():
     if "usuario" not in session:
         return redirect(url_for("login"))
+
     spreadsheet_path = get_current_spreadsheet()
     if not spreadsheet_path or not os.path.exists(spreadsheet_path):
         return redirect(url_for("tables"))
+
     if request.method == "POST":
+        form_data = {k.strip(): v.strip() for k, v in request.form.items()}
+        print(f"Datos recibidos en el formulario: {form_data}")
+
+        headers = session.get("selected_headers", ["Número", "Descripción", "Peso", "Valor", "Imagen1", "Imagen2", "Imagen3"])
+
+        if "Número" not in form_data or not form_data["Número"]:
+            return render_template("index.html", error_message="Error: Sin número.")
+
         data = leer_datos_excel(spreadsheet_path)
-        numero = request.form.get("numero").strip()
-        descripcion = request.form.get("descripcion").strip()
-        peso = request.form.get("peso")
-        valor = request.form.get("valor")
-        # Si se ingresa un número ya existente, se rechaza la operación
-        if any(item["numero"] == numero for item in data):
+
+        # Verificar si el número ya existe
+        if any(item["Número"] == form_data["Número"] for item in data):
             return render_template("index.html", data=data, error_message="Error: Ese número ya existe.")
+
+        # Crear el nuevo registro
+        nuevo_registro = {header: form_data.get(header, "") for header in headers}
+
+        # Manejo de imágenes
         files = request.files.getlist("imagenes")
         rutas_imagenes = [None, None, None]
         for i, file in enumerate(files[:3]):
@@ -342,88 +334,120 @@ def catalog():
                 fpath = os.path.join(app.config["UPLOAD_FOLDER"], fname)
                 file.save(fpath)
                 rutas_imagenes[i] = os.path.join("imagenes_subidas", fname)
-        nuevo_registro = {
-            "numero": numero,  # Valor temporal, se reordenará
-            "descripcion": descripcion,
-            "peso": peso,
-            "valor": valor,
-            "imagenes": rutas_imagenes
-        }
-        try:
-            new_index = int(numero)
-        except:
-            new_index = len(data) + 1
-        # Insertar el nuevo registro en la posición indicada
-        if new_index > len(data) + 1:
-            data.append(nuevo_registro)
-        else:
-            data.insert(new_index - 1, nuevo_registro)
-        # Reasignar números secuenciales a todas las filas
-        for i, row in enumerate(data, start=1):
-            row["numero"] = str(i)
+
+        nuevo_registro["Imagenes"] = rutas_imagenes
+
+        data.append(nuevo_registro)
         escribir_datos_excel(data, spreadsheet_path)
-        return render_template("index.html", data=data, error_message="Registro agregado con éxito.")
+
+        return render_template("index.html", data=data, success_message="Registro agregado con éxito.")
+
     else:
-        data = leer_datos_excel(get_current_spreadsheet())
+        data = leer_datos_excel(spreadsheet_path)
         return render_template("index.html", data=data)
 
 @app.route("/editar/<numero>", methods=["GET", "POST"])
 def editar(numero):
     if "usuario" not in session:
         return redirect(url_for("login"))
+
     spreadsheet_path = get_current_spreadsheet()
     if not spreadsheet_path or not os.path.exists(spreadsheet_path):
         return redirect(url_for("tables"))
+
+    # Obtener encabezados de la sesión
+    headers = session.get("selected_headers", [])
+    
+    # Leer datos actuales del archivo
+    data = leer_datos_excel(spreadsheet_path)
+
+    # Encontrar el registro correspondiente
+    idx_encontrado = None
+    registro = None
+    for i, item in enumerate(data):
+        if item["numero"] == str(numero):
+            idx_encontrado = i
+            registro = item
+            break
+
     if request.method == "GET":
-        data = leer_datos_excel(spreadsheet_path)
-        registro = next((item for item in data if item["numero"] == str(numero)), None)
         if not registro:
             return f"No existe el número {numero}."
-        return render_template("editar.html", registro=registro)
-    else:
-        data = leer_datos_excel(spreadsheet_path)
-        idx_encontrado = None
-        for i, item in enumerate(data):
-            if item["numero"] == str(numero):
-                idx_encontrado = i
-                break
+        return render_template("editar.html", registro=registro, headers=headers)
+
+    if request.method == "POST":
         if idx_encontrado is None:
             return f"No existe el número {numero}."
+
         delete_flag = request.form.get("delete_record")
         if delete_flag == "on":
             data.pop(idx_encontrado)
-            # Reasignar números tras la eliminación
+            # Reasignar los números
             for i, row in enumerate(data, start=1):
                 row["numero"] = str(i)
+
             escribir_datos_excel(data, spreadsheet_path)
             return redirect(url_for("catalog"))
-        else:
-            nueva_descripcion = request.form.get("descripcion").strip()
-            nuevo_peso = request.form.get("peso")
-            nuevo_valor = request.form.get("valor")
-            files = request.files.getlist("imagenes")
-            rutas_imagenes = [None, None, None]
-            for i, file in enumerate(files[:3]):
-                if file and allowed_file(file.filename):
-                    fname = secure_filename(file.filename)
-                    fpath = os.path.join(app.config["UPLOAD_FOLDER"], fname)
-                    file.save(fpath)
-                    rutas_imagenes[i] = os.path.join("imagenes_subidas", fname)
-            remove_flags = [
-                request.form.get("remove_img1"),
-                request.form.get("remove_img2"),
-                request.form.get("remove_img3")
-            ]
-            data[idx_encontrado]["descripcion"] = nueva_descripcion
-            data[idx_encontrado]["peso"] = nuevo_peso
-            data[idx_encontrado]["valor"] = nuevo_valor
-            for i in range(3):
-                if rutas_imagenes[i]:
-                    data[idx_encontrado]["imagenes"][i] = rutas_imagenes[i]
-                elif remove_flags[i] == "on":
-                    data[idx_encontrado]["imagenes"][i] = None
-            escribir_datos_excel(data, spreadsheet_path)
-            return redirect(url_for("catalog"))
+
+        # Crear nuevo diccionario basado en encabezados personalizados
+        nuevo_registro = {header: request.form.get(header, "").strip() for header in headers}
+
+        # Manejo de imágenes
+        files = request.files.getlist("imagenes")
+        rutas_imagenes = registro.get("imagenes", [None] * 3)
+
+        for i, file in enumerate(files[:3]):
+            if file and allowed_file(file.filename):
+                fname = secure_filename(file.filename)
+                fpath = os.path.join(app.config["UPLOAD_FOLDER"], fname)
+                file.save(fpath)
+                rutas_imagenes[i] = os.path.join("imagenes_subidas", fname)
+
+        # Eliminar imágenes si se ha marcado la opción
+        for i in range(3):
+            if request.form.get(f"remove_img{i+1}") == "on":
+                rutas_imagenes[i] = None
+
+        # Asignar valores actualizados al registro
+        nuevo_registro["imagenes"] = rutas_imagenes
+
+        # Reemplazar el registro en la lista de datos
+        data[idx_encontrado] = nuevo_registro
+
+        # Guardar de nuevo en Excel
+        escribir_datos_excel(data, spreadsheet_path)
+
+        return redirect(url_for("catalog"))
+
+@app.route("/delete_table/<table_id>", methods=["POST"])
+def delete_table(table_id):
+    if "usuario" not in session:
+        return redirect(url_for("login"))
+    # Buscamos la tabla en la colección, asegurándonos que el usuario actual es el propietario.
+    table = spreadsheets_collection.find_one({"_id": ObjectId(table_id), "owner": session["usuario"]})
+    if not table:
+        flash("Tabla no encontrada o no tienes permiso para eliminarla.", "error")
+        return redirect(url_for("tables"))
+    
+    # Construir la ruta absoluta del archivo Excel
+    file_path = os.path.join(SPREADSHEET_FOLDER, table["filename"])
+    # Si el archivo existe, lo eliminamos del sistema de archivos.
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            flash(f"Error al eliminar el archivo: {e}", "error")
+            return redirect(url_for("tables"))
+    
+    # Eliminamos el documento de la colección en MongoDB
+    spreadsheets_collection.delete_one({"_id": ObjectId(table_id)})
+    
+    # Si la tabla eliminada era la seleccionada en sesión, la removemos de la sesión.
+    if session.get("selected_table") == table["filename"]:
+        session.pop("selected_table", None)
+    
+    flash("Tabla eliminada exitosamente.", "success")
+    return redirect(url_for("tables"))
 
 @app.route("/descargar-excel")
 def descargar_excel():
@@ -432,13 +456,9 @@ def descargar_excel():
     spreadsheet_path = get_current_spreadsheet()
     if not spreadsheet_path or not os.path.exists(spreadsheet_path):
         return "El Excel no existe aún."
-    
-    # Crear un archivo ZIP temporal que incluya el Excel y las imágenes referenciadas
     temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
     with zipfile.ZipFile(temp_zip.name, "w") as zf:
-        # Agregar el archivo Excel
         zf.write(spreadsheet_path, arcname=os.path.basename(spreadsheet_path))
-        # Recopilar rutas únicas de imágenes
         data = leer_datos_excel(spreadsheet_path)
         image_paths = set()
         for row in data:
@@ -447,7 +467,6 @@ def descargar_excel():
                     absolute_path = os.path.join(app.root_path, ruta)
                     if os.path.exists(absolute_path):
                         image_paths.add(absolute_path)
-        # Agregar las imágenes al ZIP, en la subcarpeta "imagenes"
         for img_path in image_paths:
             arcname = os.path.join("imagenes", os.path.basename(img_path))
             zf.write(img_path, arcname=arcname)

@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <title>Mis Tablas de Catálogo</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
   </head>
   <body>
     <div class="container">
@@ -23,12 +24,13 @@
           <input type="text" id="table_name" name="table_name" required />
         </p>
         <p>
-          <label for="table_headers">Encabezados de columnas (separados por coma):</label>
+          <label for="table_headers">Encabezados (separados por coma):</label>
           <input
             type="text"
             id="table_headers"
             name="table_headers"
-            placeholder="Ej.: Número, Descripción, Peso, Valor, Imagen1, Imagen2, Imagen3"
+            placeholder="Ej: Código, Nombre, Precio, Stock"
+            required
           />
           <small>Si no se ingresa nada se usarán los valores por defecto.</small>
         </p>
@@ -49,7 +51,7 @@
           <strong>{{ table.name }}</strong> - Creada el {{ table.created_at.strftime("%Y-%m-%d %H:%M") }}
           <a href="/select_table/{{ table._id }}" class="btn">Seleccionar</a>
           <!-- Botón para eliminar la tabla -->
-          <form action="/delete_table/{{ table._id }}" method="POST" style="display: inline">
+          <form action="/delete_table/{{ table._id }}" method="POST" class="form-action">
             <button
               type="submit"
               class="btn btn-danger"

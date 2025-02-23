@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <title>Catálogo Joyas (Popup de Imágenes)</title>
+    <title>Catálogo Tablas - Gestión de Productos</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
   </head>
@@ -11,89 +11,107 @@
       <!-- Botón de Cerrar Sesión -->
       {% if session.usuario %}
       <div style="float: right">
-        <button type="button" class="btn-secondary" onclick="window.location.href='/logout'">
+        <button type="button" class="btn-secondary mt-1" onclick="window.location.href='/logout'">
           Cerrar Sesión ({{ session.usuario }})
         </button>
       </div>
       {% endif %}
 
-      <h1>Catálogo Joyas (Popup de Imágenes)</h1>
+      <header>
+        <h1>Catálogo de Tablas (Popup de Imágenes)</h1>
+      </header>
 
-      <!-- Botón para acceder a las opciones de crear/importar tabla -->
+      <!-- Opciones de tabla -->
       <div style="margin-bottom: 1rem">
-        <button type="button" onclick="window.location.href='/tables'" class="btn-secondary">Opciones de Tabla</button>
+        <button type="button" onclick="window.location.href='/tables'" class="btn-secondary mt-2">
+          Opciones de Tabla
+        </button>
       </div>
 
-      <!-- Mensaje de error o info (opcional) -->
+      <!-- Mensajes de error o éxito -->
       {% if error_message %}
-      <p style="color: red; font-weight: bold">{{ error_message }}</p>
+      <p class="error-message">{{ error_message }}</p>
+      {% elif success_message %}
+      <p class="success-message">{{ success_message }}</p>
       {% endif %}
 
-      <!-- Botón "Descargar Excel" colocado arriba de la tabla -->
+      <!-- Descargar Excel -->
       <div style="margin-bottom: 1rem">
         <a class="download-link" href="/descargar-excel">Descargar Excel (datos.xlsx)</a>
       </div>
 
       <!-- Formulario para agregar nuevo registro -->
-      <form method="POST" enctype="multipart/form-data">
-        <label for="numero">Número:</label>
-        <input type="text" id="numero" name="numero" required />
+      <section id="formulario-agregar">
+        <h2>Agregar Nuevo Registro</h2>
+        <form method="POST" enctype="multipart/form-data">
+          {% for header in session["selected_headers"] %} {% if header.lower() != "imagenes" %}
+          <label for="{{ header }}">{{ header }}:</label>
+          <input type="text" name="{{ header }}" placeholder="Introduce {{ header }}" />
+          {% endif %} {% endfor %}
 
-        <label for="descripcion">Descripción:</label>
-        <input type="text" id="descripcion" name="descripcion" required />
+          <label for="imagenes">Imágenes (hasta 3):</label>
+          <input type="file" name="imagenes" multiple />
 
-        <label for="peso">Peso (gr):</label>
-        <input type="number" step="any" id="peso" name="peso" required />
+          <button type="submit" class="btn">Agregar</button>
+        </form>
+      </section>
 
-        <label for="valor">Valor:</label>
-        <input type="number" step="any" id="valor" name="valor" required />
+      <!-- Instrucciones -->
+      <section id="instrucciones">
+        <h2>Instrucciones para el Catálogo</h2>
+        <ul>
+          <li><strong>Agregar Registro:</strong> Completa el formulario y asegúrate de que el "Número" sea único.</li>
+          <li><strong>Descargar Excel:</strong> Usa el enlace "Descargar Excel" para obtener el archivo ZIP.</li>
+          <li><strong>Editar Registros:</strong> Haz clic en "Editar" en la columna de acciones.</li>
+          <li><strong>Visualización de Imágenes:</strong> Haz clic en una miniatura para ampliar.</li>
+          <li><strong>Opciones de Tabla:</strong> Crea o importa nuevas hojas de cálculo.</li>
+        </ul>
+      </section>
 
-        <br /><br />
-        <label>Imágenes (hasta 3):</label>
-        <input type="file" name="imagenes" multiple accept="image/*" />
-
-        <button type="submit" class="btn">Agregar</button>
-      </form>
-
-      <!-- Tabla con los registros -->
-      <table>
-        <thead>
-          <tr>
-            <th>Número</th>
-            <th>Descripción</th>
-            <th>Peso</th>
-            <th>Valor</th>
-            <th>Imágenes</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in data %}
-          <tr>
-            <td>{{ item.numero }}</td>
-            <td>{{ item.descripcion }}</td>
-            <td>{{ item.peso }}</td>
-            <td>{{ item.valor }}</td>
-            <td>
-              {% for ruta in item.imagenes %} {% if ruta %}
-              <!-- Miniatura clicable que abre el popup -->
-              <img src="{{ '/' + ruta }}" alt="Preview" class="thumbnail" onclick="showModal('{{ '/' + ruta }}')" />
-              <br /><br />
-              {% endif %} {% endfor %}
-            </td>
-            <td>
-              <a href="/editar/{{ item.numero }}">Editar</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <!-- Tabla de registros -->
+      <section id="tabla-registros">
+        <h2>Listado de Registros</h2>
+        <table>
+          <thead>
+            <tr>
+              {% for header in session["selected_headers"] %}
+              <th>{{ header }}</th>
+              {% endfor %}
+              <th>Imágenes</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in data %}
+            <tr>
+              {% for header in session["selected_headers"] %}
+              <td>{{ item.get(header, '') }}</td>
+              {% endfor %}
+              <td>
+                {% for ruta in item.get("imagenes", []) %} {% if ruta %}
+                <img
+                  src="{{ url_for('uploaded_images', filename=ruta.split('/')[-1]) }}"
+                  alt="Preview"
+                  class="thumbnail"
+                  onclick="showModal(this.src)"
+                />
+                {% endif %} {% endfor %}
+              </td>
+              <td>
+                {% if item.get("Número") %}
+                <a href="/editar/{{ item.get('Número') }}">Editar</a>
+                {% else %}
+                <span class="error-text">Error: Sin número</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
     </div>
 
-    <!-- Botón flotante "Volver arriba" -->
-    <button type="button" class="scroll-top-btn" onclick="scrollToTop()">Volver arriba</button>
-
-    <!-- Modal (popup) para imagen ampliada -->
+    <!-- Modal para imágenes -->
     <div id="imageModal" class="modal">
       <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
@@ -102,42 +120,18 @@
     </div>
 
     <script>
-      // Función para mostrar el modal con la imagen
       function showModal(imageSrc) {
-        var modal = document.getElementById('imageModal');
-        var modalImg = document.getElementById('modalImage');
-        modal.style.display = 'block';
-        modalImg.src = imageSrc;
+        document.getElementById('modalImage').src = imageSrc;
+        document.getElementById('imageModal').style.display = 'block';
       }
-
-      // Función para cerrar el modal
       function closeModal() {
-        var modal = document.getElementById('imageModal');
-        modal.style.display = 'none';
+        document.getElementById('imageModal').style.display = 'none';
       }
-
-      // Cerrar el modal si se hace clic fuera del contenedor
       window.onclick = function (event) {
-        var modal = document.getElementById('imageModal');
-        if (event.target === modal) {
+        if (event.target === document.getElementById('imageModal')) {
           closeModal();
         }
       };
-
-      // Función para hacer scroll arriba suavemente
-      function scrollToTop() {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-
-      // Mostrar/ocultar el botón "Volver arriba" según el scroll
-      window.addEventListener('scroll', function () {
-        var scrollBtn = document.querySelector('.scroll-top-btn');
-        if (window.scrollY > 300) {
-          scrollBtn.style.display = 'block';
-        } else {
-          scrollBtn.style.display = 'none';
-        }
-      });
     </script>
   </body>
 </html>
