@@ -295,8 +295,6 @@ def tables():
 
     if request.method == "POST":
         table_name = request.form.get("table_name", "").strip()
-        if not table_name:
-            table_name = "Catálogo sin nombre"  # Nombre por defecto si no se proporciona
         import_file = request.files.get("import_table")
 
         if import_file and import_file.filename != "":
@@ -305,65 +303,34 @@ def tables():
             filepath = os.path.join(SPREADSHEET_FOLDER, filename)
             import_file.save(filepath)
             
-            # Leer los encabezados y datos del Excel importado
+            # Leer los encabezados del Excel importado
             wb = openpyxl.load_workbook(filepath)
             hoja = wb.active
-            headers = [str(cell.value) for cell in hoja[1] if cell.value]  # Convertir a string y filtrar valores None
-
+            headers = next(hoja.iter_rows(min_row=1, max_row=1, values_only=True))
+            wb.close()
+            
             # Verificar que los encabezados no estén vacíos
-            if not headers:
+            if not headers or all(header is None for header in headers):
                 flash("El archivo Excel importado no contiene encabezados válidos.", "error")
                 return redirect(url_for("tables"))
 
-            # Leer y procesar las filas de datos
-            data = []
-            for row_idx, row in enumerate(hoja.iter_rows(min_row=2, values_only=True), start=1):
-                if any(cell is not None for cell in row):  # Verificar que la fila no esté vacía
-                    registro = {
-                        "table": filename,  # Agregar referencia a la tabla
-                        "Número": row_idx,  # Número automático
-                    }
-                    
-                    # Agregar los datos de las columnas
-                    for i, header in enumerate(headers):
-                        if i < len(row):  # Evitar índices fuera de rango
-                            valor = row[i]
-                            # Convertir None a string vacío
-                            registro[header] = str(valor) if valor is not None else ""
-
-                    # Inicializar lista de imágenes vacía
-                    registro["Imagenes"] = [None, None, None]
-                    
-                    # Agregar el registro a la lista
-                    data.append(registro)
-
-            wb.close()
-
-            # Guardar info de la tabla en MongoDB
-            spreadsheet_info = {
-            "owner": owner,
-            "name": table_name,  # Nombre del catálogo
-            "filename": filename,
-            "headers": headers,
-            "created_at": datetime.utcnow()
-            }
-            spreadsheets_collection.insert_one(spreadsheet_info)
-
-            # Insertar todos los registros en la colección del catálogo
-            if data:
-                catalog_collection.insert_many(data)
-                flash(f"Se importaron {len(data)} registros exitosamente.", "success")
-            else:
-                flash("No se encontraron datos para importar en el archivo Excel.", "warning")
-
+            # Guardar info en MongoDB
+            spreadsheets_collection.insert_one({
+                "owner": owner,
+                "name": table_name,
+                "filename": filename,
+                "headers": headers,
+                "created_at": datetime.utcnow()
+            })
         else:
-            # Caso en que no sube archivo (crear nuevo con encabezados)
+            # Caso en que no sube archivo (creas uno nuevo con encabezados)
             headers_str = request.form.get("table_headers", "").strip()
             if not headers_str:
                 headers = ["Número", "Descripción", "Peso", "Valor"]  # Por defecto
             else:
                 headers = [h.strip() for h in headers_str.split(",") if h.strip()]
 
+            # Verificar que los encabezados no estén vacíos
             if not headers:
                 flash("Debe proporcionar al menos un encabezado válido.", "error")
                 return redirect(url_for("tables"))
@@ -372,7 +339,6 @@ def tables():
             filename = f"table_{file_id}.xlsx"
             filepath = os.path.join(SPREADSHEET_FOLDER, filename)
             
-            # Crear nuevo Excel vacío
             wb = Workbook()
             hoja = wb.active
             hoja.append(headers)
@@ -387,15 +353,14 @@ def tables():
                 "headers": headers,
                 "created_at": datetime.utcnow()
             })
-
-        # Almacenar los encabezados en la sesión
+        
+        # Almacenar los encabezados en la sesión para su uso posterior
         session["selected_headers"] = headers
         return redirect(url_for("tables"))
 
     # GET: mostrar las tablas existentes
     todas_las_tablas = list(spreadsheets_collection.find({"owner": session["usuario"]}))
     return render_template("tables.html", tables=todas_las_tablas)
-
 
 @app.route("/select_table/<table_id>")
 def select_table(table_id):

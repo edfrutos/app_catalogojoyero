@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
   <head>
@@ -43,27 +42,13 @@
       <hr />
       <h2>Tablas Creadas</h2>
       {% if tables %}
-<ul>
-  <table>
-    <thead>
-      <tr>
-        <th>Número</th>
-        <th>Código</th>
-        <th>Marca</th>
-        <th>Precio</th>
-        <th>Stock</th>
-        <th>Imágenes</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody>
+      <ul>
         {% for table in tables %}
         <li>
-          <strong>{{ table.name }}</strong> - Creada el {{ table.created_at.strftime("%Y-%m-%d %H:%M") if
-          table.created_at else 'Fecha no disponible' }}
+          <strong>{{ table.name }}</strong> - Creada el {{ table.created_at.strftime("%Y-%m-%d %H:%M") if table.created_at else 'Fecha no disponible' }}
           <a href="/select_table/{{ table._id }}" class="btn">Seleccionar</a>
           <!-- Botón para eliminar la tabla -->
-          <form action="/delete_table/{{ table._id }}" method="POST" class="form-action" style="display: inline">
+          <form action="/delete_table/{{ table._id }}" method="POST" class="form-action" style="display:inline;">
             <button
               type="submit"
               class="btn btn-danger"
