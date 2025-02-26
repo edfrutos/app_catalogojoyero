@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
   <head>
@@ -25,19 +26,16 @@
         </p>
         <p>
           <label for="table_headers">Encabezados (separados por coma):</label>
-          <input
-            type="text"
-            id="table_headers"
-            name="table_headers"
-            placeholder="Ej: Código, Nombre, Precio, Stock"
-            required
-          />
-          <small>Si no se ingresa nada se usarán los valores por defecto.</small>
+          <input type="text" id="table_headers" name="table_headers" placeholder="Ej: Código, Nombre, Precio, Stock" />
+          <small>Si no se ingresa nada, se usarán los valores por defecto.</small>
         </p>
         <p>
           <label for="import_table">Importar tabla (archivo Excel):</label>
           <input type="file" id="import_table" name="import_table" accept=".xlsx" />
-          <small>(Si no subes archivo, se creará una tabla vacía)</small>
+          <small>
+            Si se importa un archivo Excel, se usarán los encabezados de la primera fila. Si no se sube archivo, se
+            usarán los encabezados ingresados manualmente o los valores por defecto.
+          </small>
         </p>
         <button type="submit" class="btn">Crear/Importar Tabla</button>
       </form>
@@ -45,13 +43,27 @@
       <hr />
       <h2>Tablas Creadas</h2>
       {% if tables %}
-      <ul>
+<ul>
+  <table>
+    <thead>
+      <tr>
+        <th>Número</th>
+        <th>Código</th>
+        <th>Marca</th>
+        <th>Precio</th>
+        <th>Stock</th>
+        <th>Imágenes</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
         {% for table in tables %}
         <li>
-          <strong>{{ table.name }}</strong> - Creada el {{ table.created_at.strftime("%Y-%m-%d %H:%M") }}
+          <strong>{{ table.name }}</strong> - Creada el {{ table.created_at.strftime("%Y-%m-%d %H:%M") if
+          table.created_at else 'Fecha no disponible' }}
           <a href="/select_table/{{ table._id }}" class="btn">Seleccionar</a>
           <!-- Botón para eliminar la tabla -->
-          <form action="/delete_table/{{ table._id }}" method="POST" class="form-action">
+          <form action="/delete_table/{{ table._id }}" method="POST" class="form-action" style="display: inline">
             <button
               type="submit"
               class="btn btn-danger"

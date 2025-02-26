@@ -8,8 +8,7 @@
   </head>
   <body>
     <div class="container">
-      <!-- Botón de Cerrar Sesión -->
-      {% if session.usuario %}
+      {% if session.get('usuario') %}
       <div style="float: right">
         <button type="button" class="btn-secondary mt-1" onclick="window.location.href='/logout'">
           Cerrar Sesión ({{ session.usuario }})
@@ -21,42 +20,35 @@
         <h1>Catálogo de Tablas (Popup de Imágenes)</h1>
       </header>
 
-      <!-- Opciones de tabla -->
       <div style="margin-bottom: 1rem">
         <button type="button" onclick="window.location.href='/tables'" class="btn-secondary mt-2">
           Opciones de Tabla
         </button>
       </div>
 
-      <!-- Mensajes de error o éxito -->
       {% if error_message %}
       <p class="error-message">{{ error_message }}</p>
       {% elif success_message %}
       <p class="success-message">{{ success_message }}</p>
       {% endif %}
 
-      <!-- Descargar Excel -->
       <div style="margin-bottom: 1rem">
         <a class="download-link" href="/descargar-excel">Descargar Excel (datos.xlsx)</a>
       </div>
 
-      <!-- Formulario para agregar nuevo registro -->
       <section id="formulario-agregar">
         <h2>Agregar Nuevo Registro</h2>
         <form method="POST" enctype="multipart/form-data">
-          {% for header in session["selected_headers"] %} {% if header.lower() != "imagenes" %}
+          {% for header in session.get("selected_headers", []) %} {% if header.lower() != "imagenes" %}
           <label for="{{ header }}">{{ header }}:</label>
-          <input type="text" name="{{ header }}" placeholder="Introduce {{ header }}" />
+          <input type="text" name="{{ header }}" placeholder="Introduce {{ header }}" required />
           {% endif %} {% endfor %}
-
           <label for="imagenes">Imágenes (hasta 3):</label>
           <input type="file" name="imagenes" multiple />
-
-          <button type="submit" class="btn">Agregar</button>
+          <button type="submit" class="btn-secondary mt-2">Agregar</button>
         </form>
       </section>
 
-      <!-- Instrucciones -->
       <section id="instrucciones">
         <h2>Instrucciones para el Catálogo</h2>
         <ul>
@@ -68,13 +60,12 @@
         </ul>
       </section>
 
-      <!-- Tabla de registros -->
       <section id="tabla-registros">
         <h2>Listado de Registros</h2>
         <table>
           <thead>
             <tr>
-              {% for header in session["selected_headers"] %}
+              {% for header in session.get("selected_headers", []) %}
               <th>{{ header }}</th>
               {% endfor %}
               <th>Imágenes</th>
@@ -84,18 +75,15 @@
           <tbody>
             {% for item in data %}
             <tr>
-              {% for header in session["selected_headers"] %}
+              {% for header in session.get("selected_headers", []) %}
               <td>{{ item.get(header, '') }}</td>
               {% endfor %}
               <td>
-                {% for ruta in item.get("imagenes", []) %} {% if ruta %}
-                <img
-                  src="{{ url_for('uploaded_images', filename=ruta.split('/')[-1]) }}"
-                  alt="Preview"
-                  class="thumbnail"
-                  onclick="showModal(this.src)"
-                />
-                {% endif %} {% endfor %}
+                {% if item.get("Imagenes") %} {% for ruta in item.get("Imagenes", []) %} {% if ruta %}
+                <img src="{{ ruta }}" alt="Imagen actual" class="thumbnail" onclick="showModal('{{ ruta }}')" />
+                {% endif %} {% endfor %} {% else %}
+                <p>Sin imágenes</p>
+                {% endif %}
               </td>
               <td>
                 {% if item.get("Número") %}
@@ -111,7 +99,6 @@
       </section>
     </div>
 
-    <!-- Modal para imágenes -->
     <div id="imageModal" class="modal">
       <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
