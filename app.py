@@ -375,8 +375,10 @@ def select_table(table_id):
 
     session["selected_table"] = table["filename"]
     session["selected_table_id"] = str(table["_id"])  # Almacenar el ID de la tabla
+    session["selected_table_name"] = table["name"]  # Almacenar el nombre de la tabla
 
     return redirect(url_for("catalog"))
+
 
 # -------------------------------------------
 # RUTAS DEL CATÁLOGO (Excel e imágenes) para la tabla seleccionada
