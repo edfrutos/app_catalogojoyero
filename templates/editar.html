@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editar Registro #{{ registro.get("Número", "Desconocido") }}</title>
+    <title>Editar Registro #{{ registro["Número"] }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <style>
         .container {
@@ -77,7 +77,7 @@
     <div class="container">
         <!-- Barra de navegación -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1>Editar Registro #{{ registro.get("Número", "Desconocido") }}</h1>
+            <h1>Editar Registro #{{ registro["Número"] }}</h1>
             {% if session.usuario %}
             <button onclick="window.location.href='/logout'" class="btn-secondary">
                 Cerrar Sesión ({{ session.usuario }})
@@ -112,7 +112,7 @@
                     <input type="text" 
                            id="{{ header }}" 
                            name="{{ header }}" 
-                           value="{{ registro.get(header, '') }}" 
+                           value="{{ registro.get(header.replace(' ', '_').replace('.', '_'), '') }}" 
                            required>
                 </div>
                 {% endif %}
@@ -133,24 +133,14 @@
             <!-- Vista previa de imágenes actuales -->
             <div class="image-preview">
                 {% for i in range(3) %}
-                    {% if registro.get("Imagenes") and registro.get("Imagenes")[i] %}
-                        <div class="image-item">
-                            <img src="{{ registro.get('Imagenes')[i] }}" 
-                                 alt="Imagen {{ i+1 }}" 
-                                 class="thumbnail">
-                            <div>
-                                <label>
-                                    <input type="checkbox" 
-                                           name="remove_img{{ i+1 }}"> 
-                                    Eliminar imagen {{ i+1 }}
-                                </label>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="image-item">
-                            <p>Espacio de imagen {{ i+1 }} vacío</p>
-                        </div>
-                    {% endif %}
+                    <div>
+                        {% if imagenes_actuales[i] %}
+                        <img src="{{ imagenes_actuales[i] }}" alt="Imagen actual" class="thumbnail">
+                        <input type="checkbox" name="remove_img{{ i+1 }}"> Eliminar imagen {{ i+1 }}
+                        {% else %}
+                        <p>Espacio de imagen {{ i+1 }} vacío</p>
+                        {% endif %}
+                    </div>
                 {% endfor %}
             </div>
 

@@ -76,7 +76,7 @@
             {% for item in data %}
             <tr>
               {% for header in session.get("selected_headers", []) %}
-              <td>{{ item.get(header, '') }}</td>
+              <td>{{ item.get(header.replace(" ", "_").replace(".", "_"), '') }}</td>
               {% endfor %}
               <td>
                 {% if item.get("Imagenes") %} {% for ruta in item.get("Imagenes", []) %} {% if ruta %}

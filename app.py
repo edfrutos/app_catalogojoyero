@@ -405,6 +405,9 @@ def catalog():
         flash("La tabla seleccionada no tiene encabezados definidos.", "error")
         return redirect(url_for("tables"))
 
+    # Guardar los encabezados en la sesión
+    session["selected_headers"] = headers
+
     # Obtener registros de MongoDB para la tabla seleccionada
     registros = list(catalog_collection.find({"table": selected_table}))
 
@@ -547,7 +550,6 @@ def editar(id):
         print(f"Error en la actualización: {str(e)}")  # Para debugging
 
     return redirect(url_for("catalog"))
-
 
 @app.route("/delete_table/<table_id>", methods=["POST"])
 def delete_table(table_id):
